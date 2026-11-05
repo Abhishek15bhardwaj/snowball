@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b5c">
+<title>Snowball CS Revision</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2228%22 fill=%22%231f6b5c%22/%3E%3Ccircle cx=%2224%22 cy=%2224%22 r=%228%22 fill=%22%23dcebe6%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow study column; a sticky header with today's countdown; question card is the only raised surface. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#17201d; --muted:#5c6964; --line:#d9dfdc;
+  --accent:#1f6b5c; --accent-ink:#ffffff; --accent-soft:#dcebe6;
+  --ok:#1d7a3e; --ok-soft:#dff1e4; --bad:#b3261e; --bad-soft:#f8e0de; --warn:#946200; --warn-soft:#f6ecd2;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111716; --surface:#1a2220; --ink:#e4ebe8; --muted:#9aa8a3; --line:#2d3936;
+  --accent:#5fbfa8; --accent-ink:#0d1a16; --accent-soft:#1f3a33;
+  --ok:#62c784; --ok-soft:#173826; --bad:#f08a82; --bad-soft:#3d1d1b; --warn:#e0b354; --warn-soft:#3a2f14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111716; --surface:#1a2220; --ink:#e4ebe8; --muted:#9aa8a3; --line:#2d3936;
+  --accent:#5fbfa8; --accent-ink:#0d1a16; --accent-soft:#1f3a33;
+  --ok:#62c784; --ok-soft:#173826; --bad:#f08a82; --bad-soft:#3d1d1b; --warn:#e0b354; --warn-soft:#3a2f14; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;padding-block:0 64px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font:750 22px/1 var(--f-display);letter-spacing:-.01em}
+.brand small{display:block;font:500 12px/1.3 var(--f-body);color:var(--muted);letter-spacing:.02em;margin-top:4px}
+nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav button{font:600 14px var(--f-body);background:none;border:1px solid transparent;color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer}
+nav button[aria-current="true"]{color:var(--ink);border-color:var(--line);background:var(--surface)}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+h2{font:600 26px/1.2 var(--f-display);margin:28px 0 6px;text-wrap:balance}
+h3{font:600 13px/1.3 var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:28px 0 10px}
+p{margin:0 0 10px}
+.muted{color:var(--muted)}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btn{font:600 15px var(--f-body);border-radius:9px;padding:11px 18px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.plan{display:grid;gap:8px;margin:14px 0 16px}
+.plan .line{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.plan .line span:first-child{min-width:0}
+.pill{font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:99px;white-space:nowrap}
+.pill.first{background:var(--warn-soft);color:var(--warn)}
+.pill.snow{background:var(--accent-soft);color:var(--accent)}
+.pill.off{background:var(--line);color:var(--muted)}
+.subj{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.subj .nm{font-weight:600}
+.subj .meta{grid-column:1/2;font-size:13px;color:var(--muted)}
+.switch{position:relative;width:46px;height:26px;grid-row:1/3;grid-column:2}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.switch span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::after{transform:translateX(20px)}
+.switch input:disabled+span{opacity:.4}
+.opt-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0}
+/* quiz */
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:18px 0 6px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.qmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.tag{font:600 12px var(--f-mono);padding:3px 7px;border-radius:6px;border:1px solid var(--line);color:var(--ink)}
+.tag.pyq{border-color:var(--warn);color:var(--warn)}
+.tag.fresh{border-color:var(--accent);color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 20px;margin-top:12px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.qtext{font-size:18px;line-height:1.55;margin:0 0 18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:500 16px/1.45 var(--f-body);cursor:pointer;overflow-wrap:anywhere}
+.opt b{font:600 13px/1.6 var(--f-mono);color:var(--muted);flex:none;width:18px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt:disabled{cursor:default}
+.unsure{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--muted);cursor:pointer;width:fit-content}
+.unsure input{width:18px;height:18px;accent-color:var(--warn)}
+.why{margin-top:16px;padding:14px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.why strong{display:block;margin-bottom:4px}
+.why.ok strong{color:var(--ok)} .why.bad strong{color:var(--bad)}
+.foot{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+.kbd{font:12px var(--f-mono);color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+td.num,th.num{text-align:right}
+.tblwrap{overflow-x:auto}
+.mist{padding:12px 0;border-bottom:1px solid var(--line)}
+.mist .mq{margin:4px 0}
+.mist .ma{font-size:14px;color:var(--ok)}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.score div{padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.score b{display:block;font:600 24px var(--f-mono)}
+.score span{font-size:13px;color:var(--muted)}
+.notice{padding:10px 12px;border-radius:var(--r);background:var(--warn-soft);color:var(--ink);font-size:14px;margin:12px 0}
+
+/* mock test */
+.mockbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.timer{font:600 20px var(--f-mono);font-variant-numeric:tabular-nums}
+.timer.low{color:var(--bad)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.navrow{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}
+@media (min-width:560px){.navrow{grid-template-columns:repeat(4,1fr)}}
+.navrow .btn{padding:10px 8px;font-size:14px}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;margin-top:10px}
+.palette button{font:600 13px var(--f-mono);height:38px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.palette button.seen{border-color:var(--bad);color:var(--bad)}
+.palette button.ans{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.palette button.mark{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.palette button.ansmark{background:var(--ok);border-color:var(--warn);color:var(--surface);box-shadow:inset 0 0 0 2px var(--warn)}
+.palette button.cur{outline:2px solid var(--ink);outline-offset:1px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1.5px solid var(--line)}
+.confirm{margin-top:14px;padding:14px;border:1.5px solid var(--warn);border-radius:var(--r);background:var(--warn-soft)}
+.theory{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.theory summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--accent)}
+.thbody{padding:0 14px 14px;white-space:pre-wrap;font-size:15px;line-height:1.6}
+.rev{padding:14px 0;border-bottom:1px solid var(--line)}
+.rev .ya{font-size:14px}
+.rev .ok{color:var(--ok)} .rev .bad{color:var(--bad)} .rev .skip{color:var(--muted)}
+@media (max-width:600px){.kbd{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.field{display:block;width:100%;font:500 16px var(--f-body);padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);margin:8px 0 12px}
+.field:focus{outline:2px solid var(--accent);outline-offset:1px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">Snowball<small id="countdown">DSSSB TGT Computer Science · 1 Dec</small></div>
+    <nav>
+      <button id="nav-home" aria-current="true">Today</button>
+      <button id="nav-mist">Mistakes</button>
+      <button id="nav-cov">Coverage</button>
+      <button id="nav-sync">Sync</button>
+    </nav>
+  </header>
+  <main id="app"><p class="muted" style="margin-top:24px">Loading question banks…</p></main>
+</div>
+
+<script src="config.js"></script>
+<script src="gens.js"></script>
+<script>
+(function(){
+'use strict';
+var EXAM = new Date(2026, 11, 1); // DSSSB TGT CS, 1 Dec 2026
+var ROTATE = 5; // fresh numericals per subject in snowball rounds
+var $app = document.getElementById('app');
+var BANKS = {}, INDEX = [], ST = null, STATS = {}, SESSION = null;
+var store = null; // {load(name), save(name,obj)}
+var view = 'home';
+
+function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function rnd(){ return Math.floor(Math.random()*2147483647)+1; }
+function shuffle(a,rng){ a=a.slice(); rng=rng||Math.random; for(var i=a.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+function fmtMin(m){ m=Math.round(m); return m<60? m+' min' : Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'; }
+
+/* ---------- storage: account-synced db with local cache ---------- */
+var local = {
+  load:function(n){ try{ var v=localStorage.getItem('snow:'+n); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  save:function(n,o){ try{ localStorage.setItem('snow:'+n, JSON.stringify(o)); }catch(e){} }
+};
+var pending = {}, writing = {}, timers = {};
+function persist(name){
+  var obj = name==='state'?ST: name==='stats'?{m:STATS}: name==='mock'?{m:MOCK}: {s:SESSION};
+  local.save(name,obj);
+  if(!store) return;
+  clearTimeout(timers[name]);
+  timers[name] = setTimeout(function(){ flush(name, obj); }, 1200);
+}
+function flush(name,obj){
+  if(writing[name]){ pending[name]=obj; return; }
+  writing[name]=true;
+  store.save(name,obj).catch(function(){ syncNote(true); }).then(function(){
+    writing[name]=false;
+    if(pending[name]){ var o=pending[name]; pending[name]=null; flush(name,o); }
+  });
+}
+var syncBad=false;
+function syncNote(bad){ syncBad=bad; var el=document.getElementById('sync'); if(el) el.textContent = bad? (sidGet()&&syncReady()? 'Could not reach the sync server; progress is saved on this device and will sync on the next change.' : 'Sync is off: progress is saved on this device only. Set it up under Sync.') : ''; }
+
+var CFG = window.SNOW_CONFIG || {};
+function sidGet(){ try{ return localStorage.getItem('snow:sid')||''; }catch(e){ return ''; } }
+function sidSet(v){ try{ if(v) localStorage.setItem('snow:sid',v); else localStorage.removeItem('snow:sid'); }catch(e){} }
+async function sha256(t){ var b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join(''); }
+function rpc(fn, body){
+  return fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn, { method:'POST', headers:{ 'apikey':CFG.key, 'Authorization':'Bearer '+CFG.key, 'Content-Type':'application/json' }, body: JSON.stringify(body) })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(function(t){ return t? JSON.parse(t) : null; });
+}
+function syncReady(){ return !!(CFG.url && CFG.key); }
+async function initStore(){
+  store=null;
+  var sid=sidGet(); if(!syncReady() || !sid) return;
+  store = {
+    load: function(n){ return rpc('snow_get',{p_id: sid+':'+n}); },
+    save: function(n,o){ return rpc('snow_put',{p_id: sid+':'+n, p_data:o}).then(function(){ syncNote(false); }); }
+  };
+}
+function defaultState(){ return { enabled:{}, mix:true, pyq:false, first:{}, history:{}, gseen:{} }; }
+
+async function boot(){
+  try{
+    INDEX = await (await fetch('banks/index.json')).json();
+    for(var i=0;i<INDEX.length;i++){ var b=INDEX[i]; if(b.ready){ BANKS[b.s] = await (await fetch(b.file)).json(); } }
+  }catch(e){ $app.innerHTML='<p class="notice">Could not load the question banks. Reload the page to try again.</p>'; return; }
+  // local first for a fast first frame
+  ST = (local.load('state')) || defaultState();
+  STATS = ((local.load('stats'))||{}).m || {};
+  SESSION = ((local.load('session'))||{}).s || null;
+  normalise(); if(MOCK && !MOCK.done) view='mock';
+  var asked=false; try{ asked=!!localStorage.getItem('snow:asked'); }catch(e){}
+  if(syncReady() && !sidGet() && !asked) view='sync';
+  render();
+  await initStore();
+  if(store){
+    try{
+      var rs = await store.load('state'), rt = await store.load('stats'), rses = await store.load('session');
+      if(rs){ ST = rs; } else { persist('state'); }
+      if(rt && rt.m){ STATS = rt.m; } else { persist('stats'); }
+      if(rses){ SESSION = rses.s || null; }
+      var rm = await store.load('mock'); if(rm && rm.m && (!MOCK || (rm.m.at||0) > (MOCK.at||0))){ MOCK = rm.m; if(!MOCK.done && view!=='quiz') view='mock'; }
+      normalise();
+      if(view!=='quiz' && view!=='sync') render();
+    }catch(e){ syncNote(true); }
+  } else syncNote(true);
+}
+function normalise(){
+  if(!ST || typeof ST!=='object') ST=defaultState();
+  if(!STATS || typeof STATS!=='object') STATS={};
+  if(SESSION && (!Array.isArray(SESSION.items) || !Array.isArray(SESSION.ans))){ if(Array.isArray(SESSION.items)){ var a=[]; if(SESSION.ans && typeof SESSION.ans==='object'){ Object.keys(SESSION.ans).forEach(function(k){ a[+k]=SESSION.ans[k]; }); } SESSION.ans=a; } else SESSION=null; }
+  var d=defaultState(); for(var k in d) if(ST[k]===undefined || ST[k]===null) ST[k]=d[k];
+  if(ST.v!=='dsssb1'){ ST.v='dsssb1'; ST.enabled={OS:true, DE:true, DBMS:true, CN:true}; }
+  INDEX.forEach(function(b){ if(b.ready && ST.enabled[b.s]===undefined) ST.enabled[b.s]=false; });
+  if(MOCK && MOCK.s!=='DSB' && !BANKS[MOCK.s]) MOCK=null;
+  if(MOCK && MOCK.items){ var keep=MOCK.items.map(function(it){ return !!materialise(it); }); if(keep.indexOf(false)>=0){ ['items','sel','mark','seen'].forEach(function(k){ MOCK[k]=MOCK[k].filter(function(_,i){return keep[i];}); }); MOCK.cur=0; if(!MOCK.items.length) MOCK=null; } }
+}
+
+/* ---------- building a day's session ---------- */
+function gkey(s,id){ return s+':'+id; }
+function planFor(){
+  var out=[];
+  INDEX.forEach(function(b){
+    if(!b.ready || !ST.enabled[b.s]) return;
+    var bank=BANKS[b.s], first=!ST.first[b.s];
+    var g = ST.pyq? [] : first? bank.gens.slice() : pickRotation(b.s, bank.gens);
+    out.push({s:b.s, name:b.name, first:first && !ST.pyq, nf:fixedFor(bank).length, ng:g.length, gens:g});
+  });
+  return out;
+}
+function fixedFor(bank){ return ST.pyq? bank.fixed.filter(function(q){return q.p;}) : bank.fixed; }
+function pickRotation(s, gens){
+  var seen = ST.gseen[s]||{};
+  var order = shuffle(gens).sort(function(a,b){ return (seen[a]||'') < (seen[b]||'') ? -1 : (seen[a]||'') > (seen[b]||'') ? 1 : 0; });
+  return order.slice(0, Math.min(ROTATE, gens.length));
+}
+function estimate(plan){
+  return plan.reduce(function(t,p){ return t + p.nf*(p.first?30:12)/60 + p.ng*1.5; },0);
+}
+function buildSession(plan, mode){
+  var items=[];
+  plan.forEach(function(p){
+    var bank=BANKS[p.s];
+    var fx = fixedFor(bank).map(function(q){ return {k:'f', s:p.s, id:q.id, perm:shuffle([0,1,2,3])}; });
+    var gx = p.gens.map(function(g){ return {k:'g', s:p.s, id:g, seed:rnd(), perm:shuffle([0,1,2,3])}; });
+    items = items.concat(shuffle(fx.concat(gx)));
+  });
+  if(ST.mix) items = shuffle(items);
+  return { day: today(), mode: mode||'day', firsts: plan.filter(function(p){return p.first;}).map(function(p){return p.s;}), items: items, idx: 0, ans: [] };
+}
+function mistakeSession(){
+  var items=[];
+  activeMistakes().forEach(function(m){
+    var it = {k:m.k, s:m.s, id:m.id, perm:shuffle([0,1,2,3])};
+    if(m.k==='g') it.seed=rnd();
+    items.push(it);
+  });
+  return { day: today(), mode:'mistakes', firsts:[], items: shuffle(items), idx:0, ans:[] };
+}
+function materialise(it){
+  var bank=BANKS[it.s]; if(!bank) return null;
+  var q;
+  if(it.k==='f'){ q = bank.fixed.find(function(x){return x.id===it.id;}); if(!q) return null;
+    if(typeof q.a==='number') return { q:q.q, opts:q.o.slice(), correct:q.a, w:q.w, t:q.t, p:q.p };
+    q = {q:q.q, o:q.o, w:q.w, t:q.t, p:q.p}; }
+  else { var g=SnowGens.G[it.id]; if(!g) return null; q = g.make(SnowGens.mulberry32(it.seed)); q.t=g.t; q.fresh=true; }
+  var perm = it.perm.filter(function(i){ return i<q.o.length; });
+  return { q:q.q, opts: perm.map(function(i){return q.o[i];}), correct: perm.indexOf(0), w:q.w, t:q.t, p:q.p, fresh:q.fresh };
+}
+
+/* ---------- stats ---------- */
+function record(it, right, unsure){
+  var k = gkey(it.s, it.k==='g'? 'g:'+it.id : it.id);
+  var r = STATS[k] || {n:0,c:0,w:0,u:0};
+  r.n++; if(!right) r.w++; else if(unsure) r.u++; else r.c++;
+  r.l = !right? 'N' : unsure? 'U' : 'Y'; r.d = today();
+  STATS[k]=r;
+  var h = ST.history[today()] = ST.history[today()] || {};
+  var hs = h[it.s] = h[it.s] || {n:0,c:0,w:0,u:0};
+  hs.n++; if(!right) hs.w++; else if(unsure) hs.u++; else hs.c++;
+  if(it.k==='g'){ ST.gseen[it.s] = ST.gseen[it.s]||{}; ST.gseen[it.s][it.id] = today()+'|'+Date.now(); }
+}
+function activeMistakes(){
+  var out=[];
+  Object.keys(STATS).forEach(function(k){
+    var r=STATS[k]; if(r.l==='Y') return;
+    var parts=k.split(':'), s=parts[0];
+    if(!BANKS[s]) return;
+    if(parts[1]==='g') out.push({k:'g', s:s, id:parts.slice(2).join(':'), r:r});
+    else out.push({k:'f', s:s, id:parts[1], r:r});
+  });
+  return out;
+}
+
+/* ---------- views ---------- */
+function setNav(v){ ['home','mist','cov','sync'].forEach(function(n){ document.getElementById('nav-'+n).setAttribute('aria-current', String(v===n)); }); }
+function render(){
+  var d = Math.ceil((EXAM - new Date(new Date().toDateString()))/86400000);
+  document.getElementById('countdown').textContent = d>0 ? 'DSSSB TGT CS in '+d+' day'+(d===1?'':'s')+' · 1 Dec' : d===0? 'DSSSB TGT CS is today. All the best.' : 'DSSSB TGT CS · 1 Dec';
+  if(view==='home') return renderHome();
+  if(view==='mist') return renderMist();
+  if(view==='cov') return renderCov();
+  if(view==='quiz') return renderQuiz();
+  if(view==='done') return renderDone();
+  if(view==='mock') return renderMock();
+  if(view==='mockres') return renderMockRes();
+  if(view==='sync') return renderSync();
+}
+function renderHome(){
+  setNav('home');
+  var plan = planFor(), est = estimate(plan), total = plan.reduce(function(t,p){return t+p.nf+p.ng;},0);
+  var resumable = SESSION && SESSION.idx < SESSION.items.length && SESSION.day===today();
+  var doneToday = SESSION && SESSION.mode==='day' && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
+  var h = '';
+  h += '<h2>'+(doneToday? 'Today’s round is done' : 'Today’s round')+'</h2>';
+  if(doneToday) h += '<p class="muted">You finished today’s snowball. Clear your mistakes, or run another full round if you have time.</p>';
+  else h += '<p class="muted">Every question from each switched-on subject, in a new order with shuffled options, plus fresh numericals. Switch a subject on once you have studied it; it then comes back every day. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
+  h += '<div class="plan">';
+  if(!plan.length) h += '<div class="line"><span>No subjects switched on. Turn some on below.</span></div>';
+  plan.forEach(function(p){
+    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+p.nf+' fixed + '+p.ng+' fresh numericals</span></span><span class="pill '+(p.first?'first':'snow')+'">'+(p.first?'First pass':'Snowball')+'</span></div>';
+  });
+  h += '</div>';
+  h += '<div class="row">';
+  if(resumable) h += '<button class="btn primary" id="resume">Resume · '+SESSION.idx+' / '+SESSION.items.length+'</button><button class="btn" id="start">Start over</button>';
+  else h += '<button class="btn primary" id="start" '+(plan.length?'':'disabled')+'>'+(doneToday?'Run another round':'Start today’s round')+'</button>';
+  h += '<span class="muted num" style="font-size:14px">'+total+' questions · about '+fmtMin(est)+'</span></div>';
+  if(MOCK && !MOCK.done) h += '<p class="notice">A '+esc(MOCK.name)+' mock test is in progress. <button class="btn" id="mockresume" style="padding:4px 10px;font-size:13px">Resume mock</button></p>';
+  var nm = activeMistakes().length;
+  if(nm) h += '<p style="margin-top:12px"><button class="btn" id="practise">Practise '+nm+' open mistake'+(nm===1?'':'s')+'</button></p>';
+  h += '<p class="muted" id="sync" style="font-size:13px;margin-top:10px">'+(syncBad?'Progress is saved on this device only right now.':'')+'</p>';
+
+  h += '<div class="plan" style="margin-top:22px"><div class="line"><span><b>DSSSB Section B mock</b><br><span class="muted" style="font-size:13px">100 questions in 60 minutes, split across subjects in the real paper’s proportions. Every subject is included, studied or not.</span></span><button class="btn primary" id="dsbmock">Start</button></div></div>';
+  h += '<div class="opt-row"><span><b>PYQs only</b><br><span class="muted" style="font-size:13px">Rounds and single-subject quizzes use only previous-year questions.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-pyq" '+(ST.pyq?'checked':'')+' aria-label="PYQs only"><span></span></label></div>';
+  [['big','Big chunks · 100+ questions each'],['small','Small chunks · 60+ questions each']].forEach(function(g){
+  h += '<h3>'+g[1]+'</h3>';
+  INDEX.forEach(function(b){ if((b.size||'big')!==g[0]) return;
+    var meta;
+    if(!b.ready) meta = 'Coming soon';
+    else { var f = ST.first[b.s]; meta = b.nf+' questions · '+b.pyq+' PYQs'+(b.ng?' · '+b.ng+' numerical types':'')+' · ~'+b.wt+' in the paper'+(f? ' · first pass done '+f.slice(5).split('-').reverse().join('/') : ''); }
+    h += '<div class="subj"><span class="nm">'+esc(b.name)+(b.ready?' <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:6px" data-only="'+b.s+'">Quiz only this</button> <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:4px" data-mock="'+b.s+'">Mock test</button>':'')+'</span><label class="switch" title="Include '+esc(b.name)+'"><input type="checkbox" id="sw-'+b.s+'" data-s="'+b.s+'" '+(b.ready&&ST.enabled[b.s]?'checked':'')+' '+(b.ready?'':'disabled')+' aria-label="Include '+esc(b.name)+'"><span></span></label><span class="meta">'+meta+'</span></div>';
+  });
+  });
+  h += '<div class="opt-row"><span><b>Mix subjects together</b><br><span class="muted" style="font-size:13px">Closer to the real paper. Off keeps each subject in one block.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-mix" '+(ST.mix?'checked':'')+' aria-label="Mix subjects together"><span></span></label></div>';
+
+  var days = Object.keys(ST.history).sort().reverse();
+  if(days.length){
+    h += '<h3>History</h3><div class="tblwrap"><table><thead><tr><th>Day</th><th>Subject</th><th class="num">Right</th><th class="num">Unsure</th><th class="num">Wrong</th><th class="num">Score</th></tr></thead><tbody>';
+    days.forEach(function(d){ var hs=ST.history[d]; Object.keys(hs).forEach(function(s){ var x=hs[s]; h += '<tr><td class="num">'+d.slice(8)+'/'+d.slice(5,7)+'</td><td>'+s+'</td><td class="num">'+x.c+'</td><td class="num">'+x.u+'</td><td class="num">'+x.w+'</td><td class="num">'+Math.round(100*(x.c+x.u)/Math.max(1,x.n))+'%</td></tr>'; }); });
+    h += '</tbody></table></div>';
+  }
+  $app.innerHTML = h;
+  var st=document.getElementById('start'); if(st) st.onclick=function(){ SESSION=buildSession(planFor(),'day'); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+  var rs=document.getElementById('resume'); if(rs) rs.onclick=function(){ view='quiz'; render(); scrollTo(0,0); };
+  var pr=document.getElementById('practise'); if(pr) pr.onclick=function(){ SESSION=mistakeSession(); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+  var mr=document.getElementById('mockresume'); if(mr) mr.onclick=function(){ view='mock'; render(); scrollTo(0,0); };
+  $app.querySelectorAll('input[data-s]').forEach(function(el){ el.onchange=function(){ ST.enabled[el.dataset.s]=el.checked; persist('state'); renderHome(); }; });
+  $app.querySelectorAll('button[data-mock]').forEach(function(el){ el.onclick=function(){ startMock(el.dataset.mock); }; });
+  $app.querySelectorAll('button[data-only]').forEach(function(el){ el.onclick=function(){ var s=el.dataset.only, bank=BANKS[s]; SESSION=buildSession([{s:s, name:'', first:false, nf:fixedFor(bank).length, ng:ST.pyq?0:bank.gens.length, gens:ST.pyq?[]:bank.gens.slice()}],'subject'); persist('session'); view='quiz'; render(); scrollTo(0,0); }; });
+  document.getElementById('sw-mix').onchange=function(e){ ST.mix=e.target.checked; persist('state'); };
+  document.getElementById('sw-pyq').onchange=function(e){ ST.pyq=e.target.checked; persist('state'); renderHome(); };
+  document.getElementById('dsbmock').onclick=startDsssbMock;
+}
+
+var CUR=null, ANSWERED=false;
+function renderQuiz(){
+  setNav('');
+  if(!SESSION || SESSION.idx>=SESSION.items.length){ view='done'; return render(); }
+  var it = SESSION.items[SESSION.idx];
+  CUR = materialise(it);
+  if(!CUR){ SESSION.idx++; return renderQuiz(); }
+  ANSWERED=false;
+  var n=SESSION.items.length, i=SESSION.idx;
+  var h = '<div class="bar"><i style="width:'+(100*i/n)+'%"></i></div>';
+  h += '<div class="qmeta"><span class="num">'+(i+1)+' / '+n+'</span><span class="tag">'+esc(it.s)+'</span><span>'+esc(CUR.t||'')+'</span>'+(CUR.p?'<span class="tag pyq">PYQ '+esc(CUR.p)+'</span>':'')+(CUR.fresh?'<span class="tag fresh">fresh numbers</span>':'')+(SESSION.mode==='mistakes'?'<span class="tag">mistake</span>':'')+'</div>';
+  h += '<div class="card"><p class="qtext">'+esc(CUR.q)+'</p><div class="opts">';
+  CUR.opts.forEach(function(o,j){ h += '<button class="opt" data-j="'+j+'" id="opt-'+j+'"><b>'+'ABCD'[j]+'</b><span>'+esc(o)+'</span></button>'; });
+  h += '</div><label class="unsure"><input type="checkbox" id="unsure"> I’m not sure (counts as a mistake even if right)</label>';
+  h += '<div id="why"></div><div class="foot"><span class="kbd">Keys: 1–4 answer · U unsure · S solution · Enter next</span><span class="row"><button class="btn" id="quit">Save &amp; exit</button><button class="btn" id="skip">Skip for now</button><button class="btn" id="giveup">Show solution</button><button class="btn primary" id="next" hidden>Next</button></span></div></div>';
+  $app.innerHTML = h;
+  $app.querySelectorAll('.opt').forEach(function(b){ b.onclick=function(){ answer(+b.dataset.j); }; });
+  document.getElementById('next').onclick=next;
+  document.getElementById('quit').onclick=function(){ view='home'; render(); };
+  document.getElementById('giveup').onclick=function(){ answer(-1); };
+  document.getElementById('skip').onclick=function(){ if(ANSWERED) return; var x=SESSION.items.splice(SESSION.idx,1)[0]; SESSION.items.push(x); persist('session'); renderQuiz(); scrollTo(0,0); };
+}
+function answer(j){
+  if(ANSWERED) return; ANSWERED=true;
+  var it=SESSION.items[SESSION.idx], right = j===CUR.correct, unsure=document.getElementById('unsure').checked;
+  $app.querySelectorAll('.opt').forEach(function(b,k){ b.disabled=true; if(k===CUR.correct) b.classList.add('right'); else if(k===j) b.classList.add('wrong'); });
+  document.getElementById('unsure').disabled=true;
+  var cls = right? (unsure?'':'ok') : 'bad';
+  var head = right? (unsure? 'Right, logged as unsure' : 'Right') : j<0? 'Solution: '+'ABCD'[CUR.correct]+' \u2014 '+CUR.opts[CUR.correct] : 'Wrong. Answer: '+'ABCD'[CUR.correct];
+  var th = (BANKS[it.s] && BANKS[it.s].theory && BANKS[it.s].theory[CUR.t]) || '';
+  document.getElementById('why').innerHTML = '<div class="why '+cls+'"><strong>'+esc(head)+'</strong>'+(CUR.w? esc(CUR.w) : esc(CUR.opts[CUR.correct]))+'</div>'+(th?'<details class="theory"'+(right&&!unsure?'':' open')+'><summary>Theory: '+esc(CUR.t)+'</summary><div class="thbody">'+esc(th)+'</div></details>':'');
+  var sk=document.getElementById('skip'); if(sk) sk.hidden=true; var gu=document.getElementById('giveup'); if(gu) gu.hidden=true;
+  var nb=document.getElementById('next'); nb.hidden=false;
+  try{
+    if(!Array.isArray(SESSION.ans)) SESSION.ans=[];
+    ['first','history','gseen','enabled'].forEach(function(k){ if(!ST[k] || typeof ST[k]!=='object') ST[k]={}; });
+    record(it,right,unsure);
+    SESSION.ans[SESSION.idx] = right? (unsure?'U':'Y') : 'N';
+  }catch(e){ console.error(e); }
+  SESSION.idx++;
+  try{
+    (SESSION.firsts||[]).forEach(function(s){ if(ST.first[s]) return; var all=SESSION.items.every(function(x,k){ return x.s!==s || SESSION.ans[k]; }); if(all){ ST.first[s]=today(); } });
+    persist('stats'); persist('state'); persist('session');
+  }catch(e){ console.error(e); } nb.textContent = SESSION.idx>=SESSION.items.length? 'See results' : 'Next'; try{ nb.focus({preventScroll:true}); }catch(e){} nb.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function next(){ if(!ANSWERED) return; renderQuiz(); scrollTo(0,0); }
+document.addEventListener('keydown',function(e){
+  if(view!=='quiz' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if(/^[1-4]$/.test(e.key) && !ANSWERED){ var j=+e.key-1; if(CUR && j<CUR.opts.length){ e.preventDefault(); answer(j);} }
+  else if((e.key==='s'||e.key==='S') && !ANSWERED){ e.preventDefault(); answer(-1); }
+  else if((e.key==='u'||e.key==='U') && !ANSWERED){ var u=document.getElementById('unsure'); if(u){ u.checked=!u.checked; } }
+  else if(e.key==='Enter' && ANSWERED && document.activeElement.id!=='quit'){ e.preventDefault(); next(); }
+});
+
+function renderDone(){
+  setNav('');
+  var by={}, tot={c:0,u:0,w:0};
+  SESSION.items.forEach(function(it,k){ var a=SESSION.ans[k]; if(!a) return; var b=by[it.s]=by[it.s]||{c:0,u:0,w:0}; if(a==='Y'){b.c++;tot.c++;} else if(a==='U'){b.u++;tot.u++;} else {b.w++;tot.w++;} });
+  var n=tot.c+tot.u+tot.w, marks = (tot.c+tot.u) - 0.25*tot.w;
+  var h='<h2>'+(SESSION.mode==='mistakes'?'Mistake round done':SESSION.mode==='subject'?'Quiz complete':'Round complete')+'</h2>';
+  h+='<div class="score"><div><b>'+(tot.c+tot.u)+'/'+n+'</b><span>right</span></div><div><b>'+tot.u+'</b><span>right but unsure</span></div><div><b>'+tot.w+'</b><span>wrong</span></div><div><b>'+(Math.round(marks*100)/100)+'</b><span>exam marks (+1, −0.25)</span></div></div>';
+  h+='<div class="tblwrap"><table><thead><tr><th>Subject</th><th class="num">Right</th><th class="num">Unsure</th><th class="num">Wrong</th></tr></thead><tbody>';
+  Object.keys(by).forEach(function(s){ h+='<tr><td>'+s+'</td><td class="num">'+by[s].c+'</td><td class="num">'+by[s].u+'</td><td class="num">'+by[s].w+'</td></tr>'; });
+  h+='</tbody></table></div>';
+  var nm=activeMistakes().length;
+  h+='<p style="margin-top:16px" class="row">'+(nm?'<button class="btn primary" id="practise">Practise '+nm+' open mistake'+(nm===1?'':'s')+'</button>':'')+'<button class="btn" id="home">Back to today</button></p>';
+  $app.innerHTML=h;
+  document.getElementById('home').onclick=function(){ view='home'; render(); };
+  var pr=document.getElementById('practise'); if(pr) pr.onclick=function(){ SESSION=mistakeSession(); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+}
+
+function renderMist(){
+  setNav('mist');
+  var ms = activeMistakes();
+  var h='<h2>Mistakes</h2><p class="muted">Questions whose last answer was wrong or unsure. A question leaves this list when you next get it right without marking it unsure. Numerical types come back with new numbers.</p>';
+  if(ms.length) h+='<p><button class="btn primary" id="practise">Practise all '+ms.length+'</button></p>';
+  else h+='<p class="notice">No open mistakes yet. They collect here as you answer.</p>';
+  var bys={}; ms.forEach(function(m){ (bys[m.s]=bys[m.s]||[]).push(m); });
+  Object.keys(bys).forEach(function(s){
+    h+='<h3>'+esc((INDEX.find(function(b){return b.s===s;})||{}).name||s)+' · '+bys[s].length+'</h3>';
+    bys[s].sort(function(a,b){ return b.r.w-a.r.w; }).forEach(function(m){
+      var label, ans='';
+      if(m.k==='f'){ var q=BANKS[s].fixed.find(function(x){return x.id===m.id;}); if(!q) return; label=q.q; ans=q.o[typeof q.a==='number'?q.a:0]; }
+      else { var g=SnowGens.G[m.id]; label='Numerical: '+(g?g.t:m.id)+' (fresh numbers each time)'; }
+      h+='<div class="mist"><div class="qmeta"><span class="num">wrong '+m.r.w+'× · unsure '+m.r.u+'×</span><span>last '+(m.r.l==='N'?'wrong':'unsure')+'</span></div><p class="mq">'+esc(label)+'</p>'+(ans?'<div class="ma">'+esc(ans)+'</div>':'')+'</div>';
+    });
+  });
+  $app.innerHTML=h;
+  var pr=document.getElementById('practise'); if(pr) pr.onclick=function(){ SESSION=mistakeSession(); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+}
+function renderCov(){
+  setNav('cov');
+  var h='<h2>Coverage</h2><p class="muted">What each bank contains, by topic. Fixed questions cover the notes and every previous-year question for the subject; numerical types generate new numbers every attempt.</p>';
+  INDEX.forEach(function(b){
+    if(!b.ready){ return; }
+    var bank=BANKS[b.s], t={};
+    bank.fixed.forEach(function(q){ var x=t[q.t]=t[q.t]||{n:0,p:0}; x.n++; if(q.p) x.p++; });
+    h+='<h3>'+esc(b.name)+' · '+bank.fixed.length+' fixed · '+bank.gens.length+' numerical types</h3><div class="tblwrap"><table><thead><tr><th>Topic</th><th class="num">Questions</th><th class="num">PYQs</th></tr></thead><tbody>';
+    Object.keys(t).sort().forEach(function(k){ h+='<tr><td>'+esc(k)+'</td><td class="num">'+t[k].n+'</td><td class="num">'+t[k].p+'</td></tr>'; });
+    var gt={}; bank.gens.forEach(function(g){ var gg=SnowGens.G[g]; if(gg) gt[gg.t]=(gt[gg.t]||0)+1; });
+    h+='</tbody></table></div><p class="muted" style="font-size:14px;margin-top:8px">Numerical types: '+Object.keys(gt).map(function(k){return esc(k)+(gt[k]>1?' ×'+gt[k]:'');}).join(', ')+'</p>';
+  });
+  var soon=INDEX.filter(function(b){return !b.ready;}).map(function(b){return b.name;});
+  if(soon.length) h+='<h3>Coming</h3><p class="muted">'+soon.map(esc).join(', ')+'</p>';
+  $app.innerHTML=h;
+}
+
+/* ---------- mock test (CBT style) ---------- */
+var MOCK = null, MTIMER = null;
+try{ MOCK = JSON.parse(localStorage.getItem('snow:mock')||'null'); if(MOCK && MOCK.m!==undefined) MOCK=MOCK.m; }catch(e){ MOCK=null; }
+function saveMock(){ MOCK.at=Date.now(); try{ localStorage.setItem('snow:mock', JSON.stringify(MOCK)); }catch(e){} persist('mock'); }
+function startMock(s){
+  var bank=BANKS[s], n=bank.fixed.length + bank.gens.length;
+  var items = shuffle(bank.fixed.map(function(q){ return {k:'f', s:s, id:q.id, perm:shuffle([0,1,2,3])}; }).concat(bank.gens.map(function(g){ return {k:'g', s:s, id:g, seed:rnd(), perm:shuffle([0,1,2,3])}; })));
+  var mins = Math.max(10, Math.round(n*0.6));
+  MOCK = { s:s, name:bank.name, items:items, sel:items.map(function(){return null;}), mark:items.map(function(){return false;}), seen:items.map(function(){return false;}), cur:0, start:Date.now(), limit:mins*60000, done:false };
+  saveMock(); view='mock'; render(); scrollTo(0,0);
+}
+function startDsssbMock(){
+  var items=[];
+  INDEX.forEach(function(b){
+    if(!b.ready || !BANKS[b.s]) return;
+    var bank=BANKS[b.s], n=b.wt||0; if(!n) return;
+    var pool=bank.fixed;
+    var pyq=shuffle(pool.filter(function(q){return q.p;})), rest=shuffle(pool.filter(function(q){return !q.p;}));
+    var take=[], ng = (!ST.pyq && bank.gens.length)? Math.min(2, Math.floor(n/4)) : 0;
+    var np = Math.min(pyq.length, ST.pyq? n-ng : Math.round((n-ng)*0.7));
+    take = pyq.slice(0,np).concat(rest.slice(0,n-ng-np));
+    if(take.length < n-ng) take = take.concat(pyq.slice(np, np + (n-ng-take.length)));
+    take.forEach(function(q){ items.push({k:'f', s:b.s, id:q.id, perm:shuffle([0,1,2,3])}); });
+    shuffle(bank.gens).slice(0,ng).forEach(function(g){ items.push({k:'g', s:b.s, id:g, seed:rnd(), perm:shuffle([0,1,2,3])}); });
+  });
+  items = shuffle(items);
+  MOCK = { s:'DSB', name:'DSSSB Section B', items:items, sel:items.map(function(){return null;}), mark:items.map(function(){return false;}), seen:items.map(function(){return false;}), cur:0, start:Date.now(), limit:60*60000, done:false };
+  saveMock(); view='mock'; render(); scrollTo(0,0);
+}
+function mockLeft(){ return Math.max(0, MOCK.start + MOCK.limit - Date.now()); }
+function fmtClock(ms){ var t=Math.ceil(ms/1000), m=Math.floor(t/60), x=t%60; return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0'); }
+function tick(){
+  var el=document.getElementById('mtimer'); if(!el || !MOCK || MOCK.done){ clearInterval(MTIMER); return; }
+  var left=mockLeft(); el.textContent=fmtClock(left); el.classList.toggle('low', left<5*60000);
+  if(left<=0){ clearInterval(MTIMER); submitMock(true); }
+}
+function renderMock(){
+  setNav('');
+  if(!MOCK){ view='home'; return render(); }
+  if(MOCK.done){ view='mockres'; return render(); }
+  var i=MOCK.cur, it=MOCK.items[i], q=materialise(it); MOCK.seen[i]=true; saveMock();
+  var answered=MOCK.sel.filter(function(x){return x!==null;}).length, n=MOCK.items.length;
+  var h='<div class="mockbar"><span><b>'+esc(MOCK.name)+' mock</b><br><span class="muted num" style="font-size:13px">'+answered+' of '+n+' answered · +1 / −0.25</span></span><span class="timer" id="mtimer">'+fmtClock(mockLeft())+'</span></div>';
+  h+='<div class="card"><div class="qmeta"><span class="num">Question '+(i+1)+' of '+n+'</span>'+(MOCK.mark[i]?'<span class="tag pyq">marked for review</span>':'')+'</div>';
+  h+='<p class="qtext" style="margin-top:10px">'+esc(q.q)+'</p><div class="opts">';
+  q.opts.forEach(function(o,j){ h+='<button class="opt'+(MOCK.sel[i]===j?' sel':'')+'" data-j="'+j+'" id="mopt-'+j+'"><b>'+'ABCD'[j]+'</b><span>'+esc(o)+'</span></button>'; });
+  h+='</div><div class="navrow"><button class="btn" id="mprev" '+(i===0?'disabled':'')+'>Previous</button><button class="btn" id="mclear" '+(MOCK.sel[i]===null?'disabled':'')+'>Clear answer</button><button class="btn" id="mmark">'+(MOCK.mark[i]?'Unmark':'Mark for review')+'</button><button class="btn primary" id="mnext">'+(i===n-1?'Go to first':'Next')+'</button></div></div>';
+  h+='<h3>Question palette</h3><div class="palette">';
+  MOCK.items.forEach(function(_,k){ var a=MOCK.sel[k]!==null, m=MOCK.mark[k]; var c = a&&m?'ansmark': m?'mark': a?'ans': MOCK.seen[k]?'seen':''; h+='<button class="'+c+(k===i?' cur':'')+'" data-go="'+k+'" aria-label="Question '+(k+1)+'">'+(k+1)+'</button>'; });
+  h+='</div><div class="legend"><span><i style="background:var(--ok);border-color:var(--ok)"></i>Answered</span><span><i style="border-color:var(--bad)"></i>Seen, not answered</span><span><i style="background:var(--warn-soft);border-color:var(--warn)"></i>Marked</span><span><i></i>Not visited</span></div>';
+  h+='<div class="row" style="margin-top:18px"><button class="btn primary" id="msubmit">Submit test</button><button class="btn" id="mexit">Save &amp; exit</button></div><div id="mconfirm"></div>';
+  $app.innerHTML=h;
+  $app.querySelectorAll('.opt').forEach(function(b){ b.onclick=function(){ MOCK.sel[i]=+b.dataset.j; saveMock(); renderMock(); }; });
+  document.getElementById('mprev').onclick=function(){ MOCK.cur=Math.max(0,i-1); renderMock(); };
+  document.getElementById('mnext').onclick=function(){ MOCK.cur=(i+1)%n; renderMock(); };
+  document.getElementById('mclear').onclick=function(){ MOCK.sel[i]=null; saveMock(); renderMock(); };
+  document.getElementById('mmark').onclick=function(){ MOCK.mark[i]=!MOCK.mark[i]; if(MOCK.mark[i] && i<n-1) MOCK.cur=i+1; saveMock(); renderMock(); };
+  $app.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ MOCK.cur=+b.dataset.go; renderMock(); }; });
+  document.getElementById('mexit').onclick=function(){ view='home'; render(); };
+  document.getElementById('msubmit').onclick=function(){
+    var un=n-MOCK.sel.filter(function(x){return x!==null;}).length, mk=MOCK.mark.filter(Boolean).length;
+    document.getElementById('mconfirm').innerHTML='<div class="confirm"><p><b>Submit the test?</b> '+un+' unanswered'+(mk?', '+mk+' marked for review':'')+'. Unanswered questions score 0.</p><div class="row"><button class="btn primary" id="myes">Submit</button><button class="btn" id="mno">Keep going</button></div></div>';
+    document.getElementById('myes').onclick=function(){ submitMock(false); };
+    document.getElementById('mno').onclick=function(){ document.getElementById('mconfirm').innerHTML=''; };
+  };
+  clearInterval(MTIMER); MTIMER=setInterval(tick,1000);
+}
+function submitMock(timeUp){
+  if(!MOCK || MOCK.done) return;
+  MOCK.done=true; MOCK.timeUp=!!timeUp; MOCK.taken=Math.min(MOCK.limit, Date.now()-MOCK.start);
+  MOCK.items.forEach(function(it,k){ if(MOCK.sel[k]===null) return; var q=materialise(it); record(it, MOCK.sel[k]===q.correct, false); });
+  persist('stats'); persist('state'); saveMock(); clearInterval(MTIMER);
+  view='mockres'; render(); scrollTo(0,0);
+}
+var REVFILTER='all';
+function renderMockRes(){
+  setNav('');
+  var c=0,w=0,u=0, rows=[], BYS={};
+  MOCK.items.forEach(function(it,k){ var q=materialise(it), sel=MOCK.sel[k], st = sel===null?'skip': sel===q.correct?'ok':'bad'; if(st==='ok')c++; else if(st==='bad')w++; else u++; rows.push({q:q,sel:sel,st:st,k:k,s:it.s}); var bs=BYS[it.s]=BYS[it.s]||{c:0,w:0,u:0}; if(st==='ok')bs.c++; else if(st==='bad')bs.w++; else bs.u++; });
+  var marks=c-0.25*w, n=MOCK.items.length;
+  var h='<h2>'+esc(MOCK.name)+' mock result</h2>'+(MOCK.timeUp?'<p class="notice">Time ran out, so the test was submitted automatically.</p>':'');
+  h+='<div class="score"><div><b>'+(Math.round(marks*100)/100)+'/'+n+'</b><span>marks (+1, −0.25)</span></div><div><b>'+c+'</b><span>correct</span></div><div><b>'+w+'</b><span>wrong</span></div><div><b>'+u+'</b><span>not attempted</span></div><div><b>'+fmtClock(MOCK.taken)+'</b><span>time taken</span></div></div>';
+  h+='<p class="muted" style="font-size:14px">Accuracy '+(c+w?Math.round(100*c/(c+w)):0)+'% of attempted. Wrong answers are now in your Mistakes list.</p>';
+  if(MOCK.s==='DSB'){ h+='<div class="tblwrap"><table><thead><tr><th>Subject</th><th class="num">Right</th><th class="num">Wrong</th><th class="num">Skipped</th><th class="num">Marks</th></tr></thead><tbody>'; INDEX.forEach(function(b){ var x=BYS[b.s]; if(!x) return; h+='<tr><td>'+esc(b.name)+'</td><td class="num">'+x.c+'</td><td class="num">'+x.w+'</td><td class="num">'+x.u+'</td><td class="num">'+(x.c-0.25*x.w)+'</td></tr>'; }); h+='</tbody></table></div>'; }
+  h+='<div class="row" style="margin:10px 0"><button class="btn'+(REVFILTER==='all'?' primary':'')+'" data-f="all">All</button><button class="btn'+(REVFILTER==='bad'?' primary':'')+'" data-f="bad">Wrong ('+w+')</button><button class="btn'+(REVFILTER==='skip'?' primary':'')+'" data-f="skip">Not attempted ('+u+')</button></div>';
+  rows.forEach(function(r){ if(REVFILTER!=='all' && r.st!==REVFILTER) return;
+    h+='<div class="rev"><div class="qmeta"><span class="num">Q'+(r.k+1)+'</span><span class="'+r.st+'" style="font-weight:600">'+(r.st==='ok'?'Correct':r.st==='bad'?'Wrong':'Not attempted')+'</span></div><p class="mq" style="white-space:pre-wrap">'+esc(r.q.q)+'</p>';
+    if(r.sel!==null && r.st==='bad') h+='<div class="ya bad">Your answer: '+esc(r.q.opts[r.sel])+'</div>';
+    var th=((BANKS[r.s]||{}).theory||{})[r.q.t]; h+='<div class="ya ok">Answer: '+esc(r.q.opts[r.q.correct])+'</div>'+(r.q.w?'<div class="muted" style="font-size:14px;margin-top:4px">'+esc(r.q.w)+'</div>':'')+(th&&r.st!=='ok'?'<details class="theory"><summary>Theory: '+esc(r.q.t)+'</summary><div class="thbody">'+esc(th)+'</div></details>':'')+'</div>';
+  });
+  h+='<div class="row" style="margin-top:18px"><button class="btn primary" id="mretake">Retake (new order)</button><button class="btn" id="mhome">Back to today</button></div>';
+  $app.innerHTML=h;
+  $app.querySelectorAll('[data-f]').forEach(function(b){ b.onclick=function(){ REVFILTER=b.dataset.f; renderMockRes(); }; });
+  document.getElementById('mretake').onclick=function(){ if(MOCK.s==='DSB') startDsssbMock(); else startMock(MOCK.s); };
+  document.getElementById('mhome').onclick=function(){ view='home'; render(); };
+}
+document.getElementById('nav-home').onclick=function(){ view='home'; render(); };
+document.getElementById('nav-mist').onclick=function(){ view='mist'; render(); };
+document.getElementById('nav-cov').onclick=function(){ view='cov'; render(); };
+document.getElementById('nav-sync').onclick=function(){ view='sync'; render(); };
+function renderSync(){
+  setNav('sync');
+  var on = !!(store && sidGet());
+  var h='<h2>Sync</h2>';
+  if(!syncReady()) h+='<p class="notice">The sync server is not configured yet, so progress is saved in this browser only. Backups below still work.</p>';
+  else if(on) h+='<p class="muted">Sync is on. Progress saves to your account a second after each answer. Use the same passphrase on your other devices.</p><div class="row"><button class="btn" id="sy-off">Turn off sync on this device</button></div>';
+  else h+='<p class="muted">Choose a sync passphrase. Anyone with the passphrase can read and change this progress, so use something long that only you know (at least 10 characters). Enter the same passphrase on your phone and laptop.</p>'
+    +'<label for="sy-pass"><b>Sync passphrase</b></label><input class="field" id="sy-pass" type="password" autocomplete="current-password" minlength="10">'
+    +'<div class="row"><button class="btn primary" id="sy-go">Start syncing</button><button class="btn" id="sy-skip">Not now</button></div><p class="muted" id="sy-msg" style="font-size:14px"></p>';
+  h+='<h3>Backup</h3><p class="muted">Download all your progress as a file, or load a file you saved earlier (also how you bring in progress from the old Claude version).</p><div class="row"><button class="btn" id="sy-exp">Download backup</button><label class="btn" style="display:inline-block">Import backup<input type="file" id="sy-imp" accept="application/json,.json" hidden></label></div><p class="muted" id="sy-imsg" style="font-size:14px"></p>';
+  $app.innerHTML=h;
+  function done(){ try{ localStorage.setItem('snow:asked','1'); }catch(e){} }
+  var off=document.getElementById('sy-off'); if(off) off.onclick=function(){ sidSet(''); store=null; syncNote(true); renderSync(); };
+  var sk=document.getElementById('sy-skip'); if(sk) sk.onclick=function(){ done(); view='home'; render(); };
+  var go=document.getElementById('sy-go'); if(go) go.onclick=async function(){
+    var p=document.getElementById('sy-pass').value.trim(), msg=document.getElementById('sy-msg');
+    if(p.length<10){ msg.textContent='Use at least 10 characters.'; return; }
+    go.disabled=true; msg.textContent='Connecting…';
+    try{
+      var sid=await sha256('snowball-v1|'+p);
+      var probe=await rpc('snow_get',{p_id: sid+':state'});
+      sidSet(sid); done(); await initStore();
+      if(probe){
+        ST=probe; var rt=await store.load('stats'); STATS=(rt&&rt.m)||{}; var rs=await store.load('session'); SESSION=rs? rs.s||null : null;
+        var rm=await store.load('mock'); if(rm && rm.m) MOCK=rm.m;
+        normalise(); ['state','stats','session'].forEach(function(n){ local.save(n, n==='state'?ST: n==='stats'?{m:STATS}:{s:SESSION}); });
+        msg.textContent='Found your progress. Loaded it on this device.';
+      } else {
+        persist('state'); persist('stats'); persist('session'); if(MOCK) persist('mock');
+        msg.textContent='New passphrase: this device’s progress is now saved to it.';
+      }
+      syncNote(false); setTimeout(function(){ view='home'; render(); }, 900);
+    }catch(e){ msg.textContent='Could not reach the sync server ('+e.message+'). Check your connection and try again.'; go.disabled=false; }
+  };
+  document.getElementById('sy-exp').onclick=function(){
+    var blob=new Blob([JSON.stringify({app:'snowball',v:1,at:new Date().toISOString(),state:ST,stats:{m:STATS},session:{s:SESSION},mock:{m:MOCK}})],{type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='snowball-backup-'+today()+'.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  };
+  document.getElementById('sy-imp').onchange=function(e){
+    var f=e.target.files[0], m=document.getElementById('sy-imsg'); if(!f) return;
+    f.text().then(function(t){
+      var d=JSON.parse(t); if(!d || d.app!=='snowball' || !d.state) throw new Error('not a Snowball backup');
+      ST=d.state; STATS=(d.stats&&d.stats.m)||{}; SESSION=(d.session&&d.session.s)||null; MOCK=(d.mock&&d.mock.m)||null;
+      normalise(); persist('state'); persist('stats'); persist('session'); if(MOCK) saveMock();
+      m.textContent='Imported: '+Object.keys(STATS).length+' answered questions, '+Object.keys(ST.history||{}).length+' days of history.';
+    }).catch(function(err){ m.textContent='Could not import: '+err.message; });
+  };
+}
+boot();
+})();
+</script>
+</body>
+</html>
