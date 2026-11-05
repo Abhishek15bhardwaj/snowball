@@ -194,7 +194,7 @@ function sidGet(){ try{ return localStorage.getItem('snow:sid')||''; }catch(e){ 
 function sidSet(v){ try{ if(v) localStorage.setItem('snow:sid',v); else localStorage.removeItem('snow:sid'); }catch(e){} }
 async function sha256(t){ var b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join(''); }
 function rpc(fn, body){
-  return fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn, { method:'POST', headers:{ 'apikey':CFG.key, 'Authorization':'Bearer '+CFG.key, 'Content-Type':'application/json' }, body: JSON.stringify(body) })
+  return fetch(CFG.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn, { method:'POST', headers: Object.assign({ 'apikey':CFG.key, 'Content-Type':'application/json' }, /^eyJ/.test(CFG.key)? {'Authorization':'Bearer '+CFG.key} : {}), body: JSON.stringify(body) })
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
     .then(function(t){ return t? JSON.parse(t) : null; });
 }
