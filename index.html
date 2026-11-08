@@ -434,7 +434,7 @@ function renderHome(){
   h += '<div class="opt-row"><span><b>PYQs only</b><br><span class="muted" style="font-size:13px">Rounds and single-subject quizzes use only previous-year questions.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-pyq" '+(ST.pyq?'checked':'')+' aria-label="PYQs only"><span></span></label></div>';
   [['big','Big chunks · 100+ questions each'],['small','Small chunks · 60+ questions each']].forEach(function(g){
   h += '<h3>'+g[1]+'</h3>';
-  INDEX.forEach(function(b){ if((b.size||'big')!==g[0]) return;
+  INDEX.slice().sort(function(x,y){ return (y.wt||0)-(x.wt||0); }).forEach(function(b){ if((b.size||'big')!==g[0]) return;
     var meta;
     if(!b.ready) meta = 'Coming soon';
     else { var seenN=0, solid=0; BANKS[b.s].fixed.forEach(function(q){ var r=STATS[gkey(b.s,q.id)]; if(r){ seenN++; if(srsBox(null,r)>=3) solid++; } }); meta = b.nf+' questions · '+b.pyq+' PYQs · ~'+b.wt+' in the paper · seen '+seenN+' · solid '+solid; }
