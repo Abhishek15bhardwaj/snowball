@@ -158,7 +158,8 @@ var ROTATE = 5; // fresh numericals per subject in snowball rounds
    Every fixed question climbs a ladder: right -> back after 1, 3, 7, 14 days; wrong or unsure -> back tomorrow, ladder restarts.
    New questions are introduced evenly until NEWCUT, PYQs first; nothing is scheduled past FINAL, so all get a last refresh. */
 var LADDER = [1, 3, 7, 14];
-var NEWCUT = '2026-11-22', FINAL_FROM = '2026-11-25'; // last review of every question is spread over 25–29 Nov
+var NEW_PER_DAY = 150; // first-pass cap per subject per day
+var FINAL_FROM = '2026-11-25'; // last review of every question is spread over 25–29 Nov
 var GENS_PER_DAY = 2; // fresh numericals per subject per day
 var $app = document.getElementById('app');
 var BANKS = {}, INDEX = [], ST = null, STATS = {}, SESSION = null;
@@ -249,8 +250,8 @@ function normalise(){
   if(!STATS || typeof STATS!=='object') STATS={};
   if(SESSION && (!Array.isArray(SESSION.items) || !Array.isArray(SESSION.ans))){ if(Array.isArray(SESSION.items)){ var a=[]; if(SESSION.ans && typeof SESSION.ans==='object'){ Object.keys(SESSION.ans).forEach(function(k){ a[+k]=SESSION.ans[k]; }); } SESSION.ans=a; } else SESSION=null; }
   var d=defaultState(); for(var k in d) if(ST[k]===undefined || ST[k]===null) ST[k]=d[k];
-  if(ST.v!=='dsssb1' && ST.v!=='srs1'){ ST.v='dsssb1'; ST.enabled={OS:true, DE:true, DBMS:true, CN:true}; }
-  if(ST.v==='dsssb1'){ ST.v='srs1'; INDEX.forEach(function(b){ if(b.ready) ST.enabled[b.s]=true; }); }
+  if(ST.v!=='dsssb1' && ST.v!=='srs1' && ST.v!=='srs2'){ ST.v='dsssb1'; ST.enabled={OS:true, DE:true, DBMS:true, CN:true}; }
+  if(ST.v==='dsssb1' || ST.v==='srs1'){ ST.v='srs2'; var used={}; Object.keys(STATS).forEach(function(k){ var r=STATS[k]; if(r && r.f!==today()) used[k.split(':')[0]]=1; }); Object.keys(ST.history||{}).forEach(function(d){ if(d!==today()) Object.keys(ST.history[d]).forEach(function(s){ used[s]=1; }); }); INDEX.forEach(function(b){ if(b.ready) ST.enabled[b.s]=!!used[b.s]; }); }
   INDEX.forEach(function(b){ if(b.ready && ST.enabled[b.s]===undefined) ST.enabled[b.s]=false; });
   if(MOCK && MOCK.s!=='DSB' && !BANKS[MOCK.s]) MOCK=null;
   if(MOCK && MOCK.items){ var keep=MOCK.items.map(function(it){ return !!materialise(it); }); if(keep.indexOf(false)>=0){ ['items','sel','mark','seen'].forEach(function(k){ MOCK[k]=MOCK[k].filter(function(_,i){return keep[i];}); }); MOCK.cur=0; if(!MOCK.items.length) MOCK=null; } }
@@ -261,7 +262,7 @@ function gkey(s,id){ return s+':'+id; }
 function srsBox(k,r){ if(!r) return -1; if(typeof r.b==='number') return r.b; return r.l==='Y'? 1 : 0; }
 function srsDue(k,r){ if(r.due) return r.due; return r.l==='Y'? addDays(r.d||today(), 1 + hcode(k)%3) : today(); }
 function srsPlan(){
-  var t=today(), daysNew=Math.max(1, dayDiff(t, NEWCUT)+1), out=[];
+  var t=today(), out=[];
   INDEX.forEach(function(b){
     if(!b.ready || !ST.enabled[b.s]) return;
     var bank=BANKS[b.s], due=[], fresh=[], intro=0;
@@ -270,7 +271,7 @@ function srsPlan(){
       if(!r) fresh.push(q); else { if(r.f===t) intro++; if(srsDue(k,r) <= t && !(r.f===t && r.d===t)) due.push(q); }
     });
     fresh.sort(function(a,c){ return (c.p?1:0)-(a.p?1:0) || hcode(a.id)-hcode(c.id); });
-    var nNew = Math.max(0, Math.min(fresh.length, Math.ceil((fresh.length+intro)/daysNew) - intro));
+    var nNew = Math.max(0, Math.min(fresh.length, NEW_PER_DAY - intro));
     var g = ST.pyq? [] : pickRotation(b.s, bank.gens).slice(0, GENS_PER_DAY);
     out.push({s:b.s, name:b.name, wt:b.wt, due:due, fresh:fresh.slice(0,nNew), left:fresh.length, gens:g});
   });
@@ -401,21 +402,21 @@ function renderHome(){
   var doneToday = SESSION && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
   var h = '';
   h += '<h2>'+(doneToday && !total? 'Today’s round is done' : 'Today’s round')+'</h2>';
-  h += '<p class="muted">Spaced repetition: questions you got right come back after 1, 3, 7 and 14 days; wrong or unsure ones come back tomorrow. New questions are spread evenly until 22 Nov (PYQs first), and every question gets a final review between 25 and 29 Nov. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
+  h += '<p class="muted">Switch a subject on (below) after you study it: its questions arrive as a first pass, up to '+NEW_PER_DAY+' a day, PYQs first. After that only <b>due</b> questions come back: right ones after 1, 3, 7 and 14 days, wrong or unsure ones tomorrow. Every question gets a final review between 25 and 29 Nov. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
   if(doneToday && !total) h += '<p class="notice">All caught up for today. Clear your mistakes, or take extra new questions to get ahead.</p>';
-  h += '<div class="score"><div><b>'+nDue+'</b><span>reviews due</span></div><div><b>'+nNew+'</b><span>new today</span></div><div><b>'+nGen+'</b><span>fresh numericals</span></div><div><b>'+unseen+'</b><span>not seen yet</span></div><div><b>'+fmtMin(est)+'</b><span>estimated</span></div></div>';
+  h += '<div class="score"><div><b>'+nDue+'</b><span>reviews due</span></div><div><b>'+nNew+'</b><span>first pass today</span></div><div><b>'+nGen+'</b><span>fresh numericals</span></div><div><b>'+unseen+'</b><span>still to come from switched-on subjects</span></div><div><b>'+fmtMin(est)+'</b><span>estimated</span></div></div>';
   h += '<div class="plan">';
-  if(!plan.length) h += '<div class="line"><span>No subjects switched on. Turn some on below.</span></div>';
+  if(!plan.length) h += '<div class="line"><span>No subjects switched on yet. Watch a subject\u2019s one-shot, then switch it on below.</span></div>';
   plan.forEach(function(p){
     var d=p.due.length, f=p.fresh.length, gn=p.gens.length; if(!d && !f && !gn) return;
-    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+d+' due · '+f+' new'+(gn?' · '+gn+' numericals':'')+(p.left>f?' · '+(p.left-f)+' still to come':'')+'</span></span><span class="pill '+(f?'first':'snow')+'">'+(f?'New + review':'Review')+'</span></div>';
+    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+d+' due · '+f+' new'+(gn?' · '+gn+' numericals':'')+(p.left>f?' · '+(p.left-f)+' still to come':'')+'</span></span><span class="pill '+(f?'first':'snow')+'">'+(f?'First pass':'Review')+'</span></div>';
   });
   h += '</div>';
   h += '<div class="row">';
   if(resumable) h += '<button class="btn primary" id="resume">Resume · '+SESSION.idx+' / '+SESSION.items.length+'</button><button class="btn" id="start" '+(total?'':'disabled')+'>Start over</button>';
   else h += '<button class="btn primary" id="start" '+(total?'':'disabled')+'>Start today’s round</button>';
   h += '<span class="muted num" style="font-size:14px">'+total+' questions · about '+fmtMin(est)+'</span></div>';
-  if(unseen>nNew) h += '<p style="margin-top:10px"><button class="btn" id="extra">Get ahead: 50 extra new questions</button></p>';
+  if(unseen>nNew) h += '<p style="margin-top:10px"><button class="btn" id="extra">Get ahead: 50 more first-pass questions</button></p>';
   if(MOCK && !MOCK.done) h += '<p class="notice">A '+esc(MOCK.name)+' mock test is in progress. <button class="btn" id="mockresume" style="padding:4px 10px;font-size:13px">Resume mock</button></p>';
   var nm = activeMistakes().length;
   if(nm) h += '<p style="margin-top:12px"><button class="btn" id="practise">Practise '+nm+' open mistake'+(nm===1?'':'s')+'</button></p>';
