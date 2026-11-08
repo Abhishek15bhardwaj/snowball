@@ -293,7 +293,7 @@ function srsSession(pl, extra){
     p.fresh.forEach(function(q){ neu.push({k:'f', s:p.s, id:q.id, perm:shuffle([0,1,2,3])}); });
   });
   if(ST.mix){ rev=shuffle(rev); neu=shuffle(neu); }
-  return { day: today(), mode: extra?'extra':'day', firsts:[], items: rev.concat(neu), idx:0, ans:[] };
+  return { day: today(), mode: extra?'extra':'day', v:3, firsts:[], items: rev.concat(neu), idx:0, ans:[] };
 }
 function extraPlan(n){
   // bring forward the next n unseen questions, spread across subjects by weight
@@ -405,8 +405,9 @@ function renderHome(){
   var plan = dayPlan(), est = srsEstimate(plan);
   var nDue = plan.reduce(function(t,p){return t+p.due.length;},0), nGen = plan.reduce(function(t,p){return t+p.gens.length;},0), nNew = plan.reduce(function(t,p){return t+p.fresh.length;},0);
   var unseen = plan.reduce(function(t,p){return t+p.left;},0), total = nDue+nNew+nGen;
-  var resumable = SESSION && SESSION.idx < SESSION.items.length && SESSION.day===today();
-  var doneToday = SESSION && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
+  var stale = SESSION && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.v!==3; // rounds built by an older version of the daily plan
+  var resumable = SESSION && !stale && SESSION.idx < SESSION.items.length && SESSION.day===today();
+  var doneToday = SESSION && !stale && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
   var h = '';
   h += '<h2>'+(doneToday && !total? 'Today’s round is done' : 'Today’s round')+'</h2>';
   h += '<p class="muted">'+(ST.sm==='spaced'? 'Spaced repetition: switch a subject on after you study it; its questions arrive as a first pass, up to '+NEW_PER_DAY+' a day, PYQs first. After that only <b>due</b> questions come back: right ones after 1, 3, 7 and 14 days, wrong or unsure ones tomorrow. ' : 'Full snowball: <b>every question of every switched-on subject, every day</b>, in a new order with shuffled options. Switch a subject on the day you study it; from then on it comes back daily. ')+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
