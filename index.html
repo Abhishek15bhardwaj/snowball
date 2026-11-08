@@ -50,7 +50,7 @@ p{margin:0 0 10px}
 .plan{display:grid;gap:8px;margin:14px 0 16px}
 .plan .line{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 .plan .line span:first-child{min-width:0}
-.pill{font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:99px;white-space:nowrap}
+.pill{align-self:center;flex:none;font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:99px;white-space:nowrap}
 .pill.first{background:var(--warn-soft);color:var(--warn)}
 .pill.snow{background:var(--accent-soft);color:var(--accent)}
 .pill.off{background:var(--line);color:var(--muted)}
@@ -154,11 +154,20 @@ td.num,th.num{text-align:right}
 'use strict';
 var EXAM = new Date(2026, 11, 1); // DSSSB TGT CS, 1 Dec 2026
 var ROTATE = 5; // fresh numericals per subject in snowball rounds
+/* ---------- spaced repetition ----------
+   Every fixed question climbs a ladder: right -> back after 1, 3, 7, 14 days; wrong or unsure -> back tomorrow, ladder restarts.
+   New questions are introduced evenly until NEWCUT, PYQs first; nothing is scheduled past FINAL, so all get a last refresh. */
+var LADDER = [1, 3, 7, 14];
+var NEWCUT = '2026-11-22', FINAL_FROM = '2026-11-25'; // last review of every question is spread over 25–29 Nov
+var GENS_PER_DAY = 2; // fresh numericals per subject per day
 var $app = document.getElementById('app');
 var BANKS = {}, INDEX = [], ST = null, STATS = {}, SESSION = null;
 var store = null; // {load(name), save(name,obj)}
 var view = 'home';
 
+function addDays(d,n){ var x=new Date(d+'T00:00:00'); x.setDate(x.getDate()+n); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function dayDiff(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+function hcode(t){ var h=0; for(var i=0;i<t.length;i++){ h=(h*31+t.charCodeAt(i))|0; } return Math.abs(h); }
 function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function rnd(){ return Math.floor(Math.random()*2147483647)+1; }
@@ -240,7 +249,8 @@ function normalise(){
   if(!STATS || typeof STATS!=='object') STATS={};
   if(SESSION && (!Array.isArray(SESSION.items) || !Array.isArray(SESSION.ans))){ if(Array.isArray(SESSION.items)){ var a=[]; if(SESSION.ans && typeof SESSION.ans==='object'){ Object.keys(SESSION.ans).forEach(function(k){ a[+k]=SESSION.ans[k]; }); } SESSION.ans=a; } else SESSION=null; }
   var d=defaultState(); for(var k in d) if(ST[k]===undefined || ST[k]===null) ST[k]=d[k];
-  if(ST.v!=='dsssb1'){ ST.v='dsssb1'; ST.enabled={OS:true, DE:true, DBMS:true, CN:true}; }
+  if(ST.v!=='dsssb1' && ST.v!=='srs1'){ ST.v='dsssb1'; ST.enabled={OS:true, DE:true, DBMS:true, CN:true}; }
+  if(ST.v==='dsssb1'){ ST.v='srs1'; INDEX.forEach(function(b){ if(b.ready) ST.enabled[b.s]=true; }); }
   INDEX.forEach(function(b){ if(b.ready && ST.enabled[b.s]===undefined) ST.enabled[b.s]=false; });
   if(MOCK && MOCK.s!=='DSB' && !BANKS[MOCK.s]) MOCK=null;
   if(MOCK && MOCK.items){ var keep=MOCK.items.map(function(it){ return !!materialise(it); }); if(keep.indexOf(false)>=0){ ['items','sel','mark','seen'].forEach(function(k){ MOCK[k]=MOCK[k].filter(function(_,i){return keep[i];}); }); MOCK.cur=0; if(!MOCK.items.length) MOCK=null; } }
@@ -248,6 +258,46 @@ function normalise(){
 
 /* ---------- building a day's session ---------- */
 function gkey(s,id){ return s+':'+id; }
+function srsBox(k,r){ if(!r) return -1; if(typeof r.b==='number') return r.b; return r.l==='Y'? 1 : 0; }
+function srsDue(k,r){ if(r.due) return r.due; return r.l==='Y'? addDays(r.d||today(), 1 + hcode(k)%3) : today(); }
+function srsPlan(){
+  var t=today(), daysNew=Math.max(1, dayDiff(t, NEWCUT)+1), out=[];
+  INDEX.forEach(function(b){
+    if(!b.ready || !ST.enabled[b.s]) return;
+    var bank=BANKS[b.s], due=[], fresh=[], intro=0;
+    fixedFor(bank).forEach(function(q){
+      var k=gkey(b.s,q.id), r=STATS[k];
+      if(!r) fresh.push(q); else { if(r.f===t) intro++; if(srsDue(k,r) <= t && !(r.f===t && r.d===t)) due.push(q); }
+    });
+    fresh.sort(function(a,c){ return (c.p?1:0)-(a.p?1:0) || hcode(a.id)-hcode(c.id); });
+    var nNew = Math.max(0, Math.min(fresh.length, Math.ceil((fresh.length+intro)/daysNew) - intro));
+    var g = ST.pyq? [] : pickRotation(b.s, bank.gens).slice(0, GENS_PER_DAY);
+    out.push({s:b.s, name:b.name, wt:b.wt, due:due, fresh:fresh.slice(0,nNew), left:fresh.length, gens:g});
+  });
+  return out;
+}
+function srsEstimate(pl){ return pl.reduce(function(t,p){ return t + p.due.length*12/60 + p.fresh.length*30/60 + p.gens.length*1.5; },0); }
+function srsSession(pl, extra){
+  var rev=[], neu=[];
+  pl.forEach(function(p){
+    p.due.forEach(function(q){ rev.push({k:'f', s:p.s, id:q.id, perm:shuffle([0,1,2,3])}); });
+    p.gens.forEach(function(g){ rev.push({k:'g', s:p.s, id:g, seed:rnd(), perm:shuffle([0,1,2,3])}); });
+    p.fresh.forEach(function(q){ neu.push({k:'f', s:p.s, id:q.id, perm:shuffle([0,1,2,3])}); });
+  });
+  if(ST.mix){ rev=shuffle(rev); neu=shuffle(neu); }
+  return { day: today(), mode: extra?'extra':'day', firsts:[], items: rev.concat(neu), idx:0, ans:[] };
+}
+function extraPlan(n){
+  // bring forward the next n unseen questions, spread across subjects by weight
+  var pl=srsPlan(), pool=[];
+  pl.forEach(function(p){
+    var seenIds={}; p.fresh.forEach(function(q){ seenIds[q.id]=1; });
+    fixedFor(BANKS[p.s]).forEach(function(q){ if(!STATS[gkey(p.s,q.id)]) pool.push({p:p, q:q}); });
+  });
+  pool.sort(function(a,c){ return c.p.wt-a.p.wt || (c.q.p?1:0)-(a.q.p?1:0) || hcode(a.q.id)-hcode(c.q.id); });
+  var by={}; pool.slice(0,n).forEach(function(x){ (by[x.p.s]=by[x.p.s]||[]).push(x.q); });
+  return pl.map(function(p){ return {s:p.s, name:p.name, wt:p.wt, due:[], fresh:by[p.s]||[], left:p.left, gens:[]}; });
+}
 function planFor(){
   var out=[];
   INDEX.forEach(function(b){
@@ -301,9 +351,15 @@ function materialise(it){
 /* ---------- stats ---------- */
 function record(it, right, unsure){
   var k = gkey(it.s, it.k==='g'? 'g:'+it.id : it.id);
-  var r = STATS[k] || {n:0,c:0,w:0,u:0};
+  var r = STATS[k] || {n:0,c:0,w:0,u:0,f:today()};
+  var b0 = STATS[k]? srsBox(k, STATS[k]) : 0;
   r.n++; if(!right) r.w++; else if(unsure) r.u++; else r.c++;
   r.l = !right? 'N' : unsure? 'U' : 'Y'; r.d = today();
+  if(it.k==='f'){
+    if(right && !unsure){ r.b = Math.min(b0+1, LADDER.length); r.due = addDays(today(), LADDER[r.b-1]); }
+    else { r.b = 0; r.due = addDays(today(), 1); }
+    var cap = addDays(FINAL_FROM, hcode(k) % 5); if(today() < cap && r.due > cap) r.due = cap;
+  }
   STATS[k]=r;
   var h = ST.history[today()] = ST.history[today()] || {};
   var hs = h[it.s] = h[it.s] || {n:0,c:0,w:0,u:0};
@@ -338,23 +394,28 @@ function render(){
 }
 function renderHome(){
   setNav('home');
-  var plan = planFor(), est = estimate(plan), total = plan.reduce(function(t,p){return t+p.nf+p.ng;},0);
+  var plan = srsPlan(), est = srsEstimate(plan);
+  var nDue = plan.reduce(function(t,p){return t+p.due.length;},0), nGen = plan.reduce(function(t,p){return t+p.gens.length;},0), nNew = plan.reduce(function(t,p){return t+p.fresh.length;},0);
+  var unseen = plan.reduce(function(t,p){return t+p.left;},0), total = nDue+nNew+nGen;
   var resumable = SESSION && SESSION.idx < SESSION.items.length && SESSION.day===today();
-  var doneToday = SESSION && SESSION.mode==='day' && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
+  var doneToday = SESSION && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
   var h = '';
-  h += '<h2>'+(doneToday? 'Today’s round is done' : 'Today’s round')+'</h2>';
-  if(doneToday) h += '<p class="muted">You finished today’s snowball. Clear your mistakes, or run another full round if you have time.</p>';
-  else h += '<p class="muted">Every question from each switched-on subject, in a new order with shuffled options, plus fresh numericals. Switch a subject on once you have studied it; it then comes back every day. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
+  h += '<h2>'+(doneToday && !total? 'Today’s round is done' : 'Today’s round')+'</h2>';
+  h += '<p class="muted">Spaced repetition: questions you got right come back after 1, 3, 7 and 14 days; wrong or unsure ones come back tomorrow. New questions are spread evenly until 22 Nov (PYQs first), and every question gets a final review between 25 and 29 Nov. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
+  if(doneToday && !total) h += '<p class="notice">All caught up for today. Clear your mistakes, or take extra new questions to get ahead.</p>';
+  h += '<div class="score"><div><b>'+nDue+'</b><span>reviews due</span></div><div><b>'+nNew+'</b><span>new today</span></div><div><b>'+nGen+'</b><span>fresh numericals</span></div><div><b>'+unseen+'</b><span>not seen yet</span></div><div><b>'+fmtMin(est)+'</b><span>estimated</span></div></div>';
   h += '<div class="plan">';
   if(!plan.length) h += '<div class="line"><span>No subjects switched on. Turn some on below.</span></div>';
   plan.forEach(function(p){
-    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+p.nf+' fixed + '+p.ng+' fresh numericals</span></span><span class="pill '+(p.first?'first':'snow')+'">'+(p.first?'First pass':'Snowball')+'</span></div>';
+    var d=p.due.length, f=p.fresh.length, gn=p.gens.length; if(!d && !f && !gn) return;
+    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+d+' due · '+f+' new'+(gn?' · '+gn+' numericals':'')+(p.left>f?' · '+(p.left-f)+' still to come':'')+'</span></span><span class="pill '+(f?'first':'snow')+'">'+(f?'New + review':'Review')+'</span></div>';
   });
   h += '</div>';
   h += '<div class="row">';
-  if(resumable) h += '<button class="btn primary" id="resume">Resume · '+SESSION.idx+' / '+SESSION.items.length+'</button><button class="btn" id="start">Start over</button>';
-  else h += '<button class="btn primary" id="start" '+(plan.length?'':'disabled')+'>'+(doneToday?'Run another round':'Start today’s round')+'</button>';
+  if(resumable) h += '<button class="btn primary" id="resume">Resume · '+SESSION.idx+' / '+SESSION.items.length+'</button><button class="btn" id="start" '+(total?'':'disabled')+'>Start over</button>';
+  else h += '<button class="btn primary" id="start" '+(total?'':'disabled')+'>Start today’s round</button>';
   h += '<span class="muted num" style="font-size:14px">'+total+' questions · about '+fmtMin(est)+'</span></div>';
+  if(unseen>nNew) h += '<p style="margin-top:10px"><button class="btn" id="extra">Get ahead: 50 extra new questions</button></p>';
   if(MOCK && !MOCK.done) h += '<p class="notice">A '+esc(MOCK.name)+' mock test is in progress. <button class="btn" id="mockresume" style="padding:4px 10px;font-size:13px">Resume mock</button></p>';
   var nm = activeMistakes().length;
   if(nm) h += '<p style="margin-top:12px"><button class="btn" id="practise">Practise '+nm+' open mistake'+(nm===1?'':'s')+'</button></p>';
@@ -367,7 +428,7 @@ function renderHome(){
   INDEX.forEach(function(b){ if((b.size||'big')!==g[0]) return;
     var meta;
     if(!b.ready) meta = 'Coming soon';
-    else { var f = ST.first[b.s]; meta = b.nf+' questions · '+b.pyq+' PYQs'+(b.ng?' · '+b.ng+' numerical types':'')+' · ~'+b.wt+' in the paper'+(f? ' · first pass done '+f.slice(5).split('-').reverse().join('/') : ''); }
+    else { var seenN=0, solid=0; BANKS[b.s].fixed.forEach(function(q){ var r=STATS[gkey(b.s,q.id)]; if(r){ seenN++; if(srsBox(null,r)>=3) solid++; } }); meta = b.nf+' questions · '+b.pyq+' PYQs · ~'+b.wt+' in the paper · seen '+seenN+' · solid '+solid; }
     h += '<div class="subj"><span class="nm">'+esc(b.name)+(b.ready?' <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:6px" data-only="'+b.s+'">Quiz only this</button> <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:4px" data-mock="'+b.s+'">Mock test</button>'+(b.vg?' <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:4px" data-gaps="'+b.s+'" title="PYQs the one-shot video does not teach">Video gaps ('+b.vg+')</button>':''):'')+'</span><label class="switch" title="Include '+esc(b.name)+'"><input type="checkbox" id="sw-'+b.s+'" data-s="'+b.s+'" '+(b.ready&&ST.enabled[b.s]?'checked':'')+' '+(b.ready?'':'disabled')+' aria-label="Include '+esc(b.name)+'"><span></span></label><span class="meta">'+meta+'</span></div>';
   });
   });
@@ -380,7 +441,8 @@ function renderHome(){
     h += '</tbody></table></div>';
   }
   $app.innerHTML = h;
-  var st=document.getElementById('start'); if(st) st.onclick=function(){ SESSION=buildSession(planFor(),'day'); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+  var st=document.getElementById('start'); if(st) st.onclick=function(){ SESSION=srsSession(srsPlan()); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+  var ex=document.getElementById('extra'); if(ex) ex.onclick=function(){ SESSION=srsSession(extraPlan(50), true); persist('session'); view='quiz'; render(); scrollTo(0,0); };
   var rs=document.getElementById('resume'); if(rs) rs.onclick=function(){ view='quiz'; render(); scrollTo(0,0); };
   var pr=document.getElementById('practise'); if(pr) pr.onclick=function(){ SESSION=mistakeSession(); persist('session'); view='quiz'; render(); scrollTo(0,0); };
   var mr=document.getElementById('mockresume'); if(mr) mr.onclick=function(){ view='mock'; render(); scrollTo(0,0); };
@@ -452,7 +514,7 @@ function renderDone(){
   var by={}, tot={c:0,u:0,w:0};
   SESSION.items.forEach(function(it,k){ var a=SESSION.ans[k]; if(!a) return; var b=by[it.s]=by[it.s]||{c:0,u:0,w:0}; if(a==='Y'){b.c++;tot.c++;} else if(a==='U'){b.u++;tot.u++;} else {b.w++;tot.w++;} });
   var n=tot.c+tot.u+tot.w, marks = (tot.c+tot.u) - 0.25*tot.w;
-  var h='<h2>'+(SESSION.mode==='mistakes'?'Mistake round done':SESSION.mode==='subject'?'Quiz complete':'Round complete')+'</h2>';
+  var h='<h2>'+(SESSION.mode==='mistakes'?'Mistake round done':SESSION.mode==='subject'?'Quiz complete':SESSION.mode==='extra'?'Extra questions done':'Round complete')+'</h2>';
   h+='<div class="score"><div><b>'+(tot.c+tot.u)+'/'+n+'</b><span>right</span></div><div><b>'+tot.u+'</b><span>right but unsure</span></div><div><b>'+tot.w+'</b><span>wrong</span></div><div><b>'+(Math.round(marks*100)/100)+'</b><span>exam marks (+1, −0.25)</span></div></div>';
   h+='<div class="tblwrap"><table><thead><tr><th>Subject</th><th class="num">Right</th><th class="num">Unsure</th><th class="num">Wrong</th></tr></thead><tbody>';
   Object.keys(by).forEach(function(s){ h+='<tr><td>'+s+'</td><td class="num">'+by[s].c+'</td><td class="num">'+by[s].u+'</td><td class="num">'+by[s].w+'</td></tr>'; });
