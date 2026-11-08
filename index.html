@@ -277,6 +277,13 @@ function srsPlan(){
   });
   return out;
 }
+function fullPlan(){
+  return INDEX.filter(function(b){ return b.ready && ST.enabled[b.s]; }).map(function(b){
+    var bank=BANKS[b.s], fx=fixedFor(bank), fresh=fx.filter(function(q){ return !STATS[gkey(b.s,q.id)]; }), seen=fx.filter(function(q){ return STATS[gkey(b.s,q.id)]; });
+    return {s:b.s, name:b.name, wt:b.wt, due:seen, fresh:fresh, left:fresh.length, gens: ST.pyq? [] : pickRotation(b.s, bank.gens)};
+  });
+}
+function dayPlan(){ return ST.sm==='spaced'? srsPlan() : fullPlan(); }
 function srsEstimate(pl){ return pl.reduce(function(t,p){ return t + p.due.length*12/60 + p.fresh.length*30/60 + p.gens.length*1.5; },0); }
 function srsSession(pl, extra){
   var rev=[], neu=[];
@@ -395,28 +402,29 @@ function render(){
 }
 function renderHome(){
   setNav('home');
-  var plan = srsPlan(), est = srsEstimate(plan);
+  var plan = dayPlan(), est = srsEstimate(plan);
   var nDue = plan.reduce(function(t,p){return t+p.due.length;},0), nGen = plan.reduce(function(t,p){return t+p.gens.length;},0), nNew = plan.reduce(function(t,p){return t+p.fresh.length;},0);
   var unseen = plan.reduce(function(t,p){return t+p.left;},0), total = nDue+nNew+nGen;
   var resumable = SESSION && SESSION.idx < SESSION.items.length && SESSION.day===today();
   var doneToday = SESSION && (SESSION.mode==='day'||SESSION.mode==='extra') && SESSION.day===today() && SESSION.idx>=SESSION.items.length;
   var h = '';
   h += '<h2>'+(doneToday && !total? 'Today’s round is done' : 'Today’s round')+'</h2>';
-  h += '<p class="muted">Switch a subject on (below) after you study it: its questions arrive as a first pass, up to '+NEW_PER_DAY+' a day, PYQs first. After that only <b>due</b> questions come back: right ones after 1, 3, 7 and 14 days, wrong or unsure ones tomorrow. Every question gets a final review between 25 and 29 Nov. '+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
+  h += '<p class="muted">'+(ST.sm==='spaced'? 'Spaced repetition: switch a subject on after you study it; its questions arrive as a first pass, up to '+NEW_PER_DAY+' a day, PYQs first. After that only <b>due</b> questions come back: right ones after 1, 3, 7 and 14 days, wrong or unsure ones tomorrow. ' : 'Full snowball: <b>every question of every switched-on subject, every day</b>, in a new order with shuffled options. Switch a subject on the day you study it; from then on it comes back daily. ')+(ST.pyq?'<b>PYQs only is on.</b>':'')+'</p>';
   if(doneToday && !total) h += '<p class="notice">All caught up for today. Clear your mistakes, or take extra new questions to get ahead.</p>';
-  h += '<div class="score"><div><b>'+nDue+'</b><span>reviews due</span></div><div><b>'+nNew+'</b><span>first pass today</span></div><div><b>'+nGen+'</b><span>fresh numericals</span></div><div><b>'+unseen+'</b><span>still to come from switched-on subjects</span></div><div><b>'+fmtMin(est)+'</b><span>estimated</span></div></div>';
+  h += '<div class="score"><div><b>'+nDue+'</b><span>'+(ST.sm==='spaced'?'reviews due':'from earlier days')+'</span></div><div><b>'+nNew+'</b><span>first time</span></div><div><b>'+nGen+'</b><span>fresh numericals</span></div><div><b>'+fmtMin(est)+'</b><span>estimated</span></div></div>';
   h += '<div class="plan">';
   if(!plan.length) h += '<div class="line"><span>No subjects switched on yet. Watch a subject\u2019s one-shot, then switch it on below.</span></div>';
   plan.forEach(function(p){
     var d=p.due.length, f=p.fresh.length, gn=p.gens.length; if(!d && !f && !gn) return;
-    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+d+' due · '+f+' new'+(gn?' · '+gn+' numericals':'')+(p.left>f?' · '+(p.left-f)+' still to come':'')+'</span></span><span class="pill '+(f?'first':'snow')+'">'+(f?'First pass':'Review')+'</span></div>';
+    h += '<div class="line"><span><b>'+esc(p.name)+'</b><br><span class="muted num" style="font-size:13px">'+d+(ST.sm==='spaced'?' due':' repeat')+' · '+f+' new'+(gn?' · '+gn+' numericals':'')+(p.left>f?' · '+(p.left-f)+' still to come':'')+'</span></span><span class="pill '+(f?'first':'snow')+'">'+(f?'First time':(ST.sm==='spaced'?'Review':'Snowball'))+'</span></div>';
   });
   h += '</div>';
   h += '<div class="row">';
   if(resumable) h += '<button class="btn primary" id="resume">Resume · '+SESSION.idx+' / '+SESSION.items.length+'</button><button class="btn" id="start" '+(total?'':'disabled')+'>Start over</button>';
   else h += '<button class="btn primary" id="start" '+(total?'':'disabled')+'>Start today’s round</button>';
   h += '<span class="muted num" style="font-size:14px">'+total+' questions · about '+fmtMin(est)+'</span></div>';
-  if(unseen>nNew) h += '<p style="margin-top:10px"><button class="btn" id="extra">Get ahead: 50 more first-pass questions</button></p>';
+  h += '<div class="opt-row"><span><b>Spaced repetition instead</b><br><span class="muted" style="font-size:13px">Off (default) = full snowball, every question daily. On = only the questions that are due; use it if a day gets too long.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-sm" '+(ST.sm==='spaced'?'checked':'')+' aria-label="Spaced repetition instead"><span></span></label></div>';
+  if(ST.sm==='spaced' && unseen>nNew) h += '<p style="margin-top:10px"><button class="btn" id="extra">Get ahead: 50 more first-pass questions</button></p>';
   if(MOCK && !MOCK.done) h += '<p class="notice">A '+esc(MOCK.name)+' mock test is in progress. <button class="btn" id="mockresume" style="padding:4px 10px;font-size:13px">Resume mock</button></p>';
   var nm = activeMistakes().length;
   if(nm) h += '<p style="margin-top:12px"><button class="btn" id="practise">Practise '+nm+' open mistake'+(nm===1?'':'s')+'</button></p>';
@@ -442,7 +450,7 @@ function renderHome(){
     h += '</tbody></table></div>';
   }
   $app.innerHTML = h;
-  var st=document.getElementById('start'); if(st) st.onclick=function(){ SESSION=srsSession(srsPlan()); persist('session'); view='quiz'; render(); scrollTo(0,0); };
+  var st=document.getElementById('start'); if(st) st.onclick=function(){ SESSION=srsSession(dayPlan()); persist('session'); view='quiz'; render(); scrollTo(0,0); };
   var ex=document.getElementById('extra'); if(ex) ex.onclick=function(){ SESSION=srsSession(extraPlan(50), true); persist('session'); view='quiz'; render(); scrollTo(0,0); };
   var rs=document.getElementById('resume'); if(rs) rs.onclick=function(){ view='quiz'; render(); scrollTo(0,0); };
   var pr=document.getElementById('practise'); if(pr) pr.onclick=function(){ SESSION=mistakeSession(); persist('session'); view='quiz'; render(); scrollTo(0,0); };
@@ -452,6 +460,7 @@ function renderHome(){
   $app.querySelectorAll('button[data-gaps]').forEach(function(el){ el.onclick=function(){ var s=el.dataset.gaps, bank=BANKS[s]; var items=shuffle(bank.fixed.filter(function(q){return q.vg;}).map(function(q){ return {k:'f', s:s, id:q.id, perm:shuffle([0,1,2,3])}; })); SESSION={ day: today(), mode:'subject', firsts:[], items:items, idx:0, ans:[] }; persist('session'); view='quiz'; render(); scrollTo(0,0); }; });
   $app.querySelectorAll('button[data-only]').forEach(function(el){ el.onclick=function(){ var s=el.dataset.only, bank=BANKS[s]; SESSION=buildSession([{s:s, name:'', first:false, nf:fixedFor(bank).length, ng:ST.pyq?0:bank.gens.length, gens:ST.pyq?[]:bank.gens.slice()}],'subject'); persist('session'); view='quiz'; render(); scrollTo(0,0); }; });
   document.getElementById('sw-mix').onchange=function(e){ ST.mix=e.target.checked; persist('state'); };
+  document.getElementById('sw-sm').onchange=function(e){ ST.sm=e.target.checked?'spaced':'full'; persist('state'); renderHome(); };
   document.getElementById('sw-pyq').onchange=function(e){ ST.pyq=e.target.checked; persist('state'); renderHome(); };
   document.getElementById('dsbmock').onclick=startDsssbMock;
 }
