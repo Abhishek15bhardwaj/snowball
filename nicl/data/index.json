@@ -42,5 +42,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "uiic26",
+  "title": "UIIC AO 2026",
+  "exam": "UIIC AO Prelims",
+  "date": "22 Oct 2026",
+  "order": 3,
+  "note": "Reasoning has 30 questions in 17 minutes: one garbled puzzle set was removed.",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 30,
+    "minutes": 17
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
