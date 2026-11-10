@@ -130,5 +130,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "niacl21",
+  "title": "NIACL AO 2021",
+  "exam": "NIACL AO Prelims",
+  "date": "16 Oct 2021",
+  "order": 7,
+  "note": "Harder puzzles than NICL — good stretch practice.",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
