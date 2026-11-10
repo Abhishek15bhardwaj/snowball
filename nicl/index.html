@@ -101,6 +101,28 @@ h3{font:600 13px/1.3 var(--f-body);text-transform:uppercase;letter-spacing:.08em
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);max-width:420px;width:calc(100% - 32px)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* during a test: hide the site header, keep timer + submit pinned */
+body.in-exam header{display:none}
+body.in-exam .exam-top{position:sticky;top:0;z-index:6;background:var(--bg);margin:0 0 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+@media (max-width:979px){
+  header{position:static}
+  .opt{padding:10px 12px}
+  .exam-top{flex-wrap:nowrap;gap:8px}
+  .exam-top .t{font-size:13px;flex:1 1 auto;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .exam-top .timer{font-size:18px;padding:7px 10px}
+  .setbox{max-height:44vh;padding:12px 14px}
+  .setbox .ctx{font-size:15px;line-height:1.5}
+  .card{padding:14px}
+  .qtext{font-size:16.5px}
+  .actions{position:sticky;bottom:0;background:var(--surface);padding:10px 0 calc(6px + env(safe-area-inset-bottom,0px));margin-bottom:-6px;border-top:1px solid var(--line)}
+  .actions{flex-wrap:nowrap;gap:6px}
+  .actions .btn{padding:11px 8px;font-size:14.5px;white-space:nowrap}
+  #next{flex:1.6}
+  .actions .sp{display:none}
+  #prev,#next{flex:1}
+  #mk,#clr{flex:1}
+}
+@media (pointer:coarse){ .keys{display:none} }
 </style>
 </head>
 <body>
@@ -153,6 +175,7 @@ function score(sec,ans){
 
 /* ---------- home ---------- */
 function home(){
+  document.body.classList.remove('in-exam');
   view='home'; clearInterval(tick);
   var h='';
   if(DB.run) h+='<p class="notice">You have a test in progress: <b>'+esc(DB.run.title)+'</b>. <button class="btn small primary" id="resume">Resume</button></p>';
@@ -205,18 +228,23 @@ function draw(p,sec){
   var R=DB.run, it=sec.items[R.cur], g=it.g?sec.groups[it.g]:null;
   account(); R._n=it.n; R.seen[it.n]=1; persist();
   var gi=g? sec.items.filter(function(x){return x.g===it.g;}) : [];
+  document.body.classList.add('in-exam');
+  var oldBox=$app.querySelector('.setbox'), keep=oldBox && R._g===it.g, boxTop=keep?oldBox.scrollTop:0,
+      boxOpen=keep&&oldBox.querySelector('details')?oldBox.querySelector('details').open:true, qChanged=R._shown!==it.n, winY=window.scrollY;
+  R._g=it.g; R._shown=it.n;
   var h='<div class="exam-top"><span class="t">'+esc(R.title)+'</span><span class="timer" id="timer" role="timer" aria-label="Time left">'+mmss((R.ends-now())/1000)+'</span><button class="btn small primary" id="sub">Submit</button></div>';
   h+='<div class="exam'+(g?' has-set':'')+'">';
   if(g){
     var wide=window.matchMedia('(min-width:980px)').matches;
-    h+='<section class="card setbox" aria-label="Set information">'+(wide?'':'<details open><summary>Set information (Q'+gi[0].n+'–'+gi[gi.length-1].n+')</summary>')
+    h+='<section class="card setbox" aria-label="Set information">'+(wide?'':'<details'+(boxOpen?' open':'')+'><summary>Set information (Q'+gi[0].n+'–'+gi[gi.length-1].n+')</summary>')
       +'<div class="ctx">'+fmt(g.text)+'</div>'+(g.html||'')+(g.img?'<img src="'+esc(g.img)+'" alt="Chart for questions '+gi[0].n+' to '+gi[gi.length-1].n+'">':'')+(wide?'':'</details>')+'</section>';
   }
   h+='<section class="card" aria-label="Question"><div class="qhead"><span>Question '+(R.cur+1)+' of '+sec.items.length+'</span><span>'+(g?'Set Q'+gi[0].n+'–'+gi[gi.length-1].n:'')+'</span></div>'
     +'<p class="qtext">'+fmt(it.q)+'</p><div class="opts" role="radiogroup" aria-label="Options">';
   it.o.forEach(function(o,i){ var sel=R.ans[it.n]===i; h+='<button class="opt'+(sel?' sel':'')+'" role="radio" aria-checked="'+sel+'" data-o="'+i+'"><span class="k">'+'ABCDE'[i]+'</span><span>'+fmt(o)+'</span></button>'; });
-  h+='</div><div class="actions"><button class="btn" id="mk">'+(R.mk[it.n]?'Unmark':'Mark for review')+'</button><button class="btn" id="clr">Clear</button><span class="sp"></span>'
-    +'<button class="btn" id="prev" '+(R.cur?'':'disabled')+'>Previous</button><button class="btn primary" id="next">'+(R.cur<sec.items.length-1?'Save &amp; next':'Save')+'</button></div></section>';
+  var nar=!window.matchMedia('(min-width:980px)').matches;
+  h+='</div><div class="actions"><button class="btn" id="mk">'+(R.mk[it.n]?'Unmark':(nar?'Mark':'Mark for review'))+'</button><button class="btn" id="clr">Clear</button><span class="sp"></span>'
+    +'<button class="btn" id="prev" '+(R.cur?'':'disabled')+'>'+(nar?'Prev':'Previous')+'</button><button class="btn primary" id="next">'+(R.cur<sec.items.length-1?'Save &amp; next':'Save')+'</button></div></section>';
   h+='<section class="card side" aria-label="Question palette"><b>Questions</b><div class="pal">';
   sec.items.forEach(function(x,i){
     var a=R.ans[x.n]!==undefined, cls=(a?'ans ':'')+(R.mk[x.n]?'mk ':'')+(!a&&R.seen[x.n]&&!R.mk[x.n]?'skip ':'')+(i===R.cur?'cur':'');
@@ -224,8 +252,13 @@ function draw(p,sec){
   });
   var na=Object.keys(R.ans).length;
   h+='</div><div class="legend"><span><i style="border-color:var(--ok);background:var(--ok-soft)"></i>Answered ('+na+')</span><span><i style="border-color:var(--bad);background:var(--bad-soft)"></i>Seen, not answered</span><span><i style="border-color:var(--mark);background:var(--mark-soft)"></i>Marked</span><span><i style="border-color:var(--line)"></i>Not visited</span></div></section></div>';
-  h+='<p class="muted" style="font-size:13px;margin-top:10px">Keys: 1–5 pick an option · N next · P previous · M mark</p>';
+  h+='<p class="muted keys" style="font-size:13px;margin-top:10px">Keys: 1–5 pick an option · N next · P previous · M mark</p>';
   $app.innerHTML=h;
+  var nb=$app.querySelector('.setbox'); if(nb&&keep) nb.scrollTop=boxTop;
+  if(!qChanged) window.scrollTo(0,winY);
+  else { var qc=$app.querySelector('[aria-label="Question"]'), bar=$app.querySelector('.exam-top');
+    if(!keep) window.scrollTo(0,0);
+    else if(qc){ var off=qc.getBoundingClientRect().top-(bar?bar.offsetHeight:0)-8; if(off<0||off>innerHeight*0.6) window.scrollBy(0,off); } }
   $app.querySelectorAll('.opt').forEach(function(b){ b.onclick=function(){ var o=+b.dataset.o; R.ans[it.n]=o; persist(); draw(p,sec); }; });
   $app.querySelectorAll('.pal button').forEach(function(b){ b.onclick=function(){ R.cur=+b.dataset.i; draw(p,sec); }; });
   document.getElementById('mk').onclick=function(){ if(R.mk[it.n]) delete R.mk[it.n]; else R.mk[it.n]=1; if(R.cur<sec.items.length-1) R.cur++; draw(p,sec); };
@@ -244,12 +277,13 @@ document.addEventListener('keydown',function(e){
   else if(k==='n'){ document.getElementById('next').click(); } else if(k==='p'){ document.getElementById('prev').click(); } else if(k==='m'){ document.getElementById('mk').click(); }
 });
 async function submit(auto){
+  document.body.classList.remove('in-exam');
   var R=DB.run; if(!R) return; clearInterval(tick);
   account();
   var p=await paper(R.pid), sec=p.sections[R.s], sc=score(sec,R.ans);
   var rec={start:R.start,end:Math.min(now(),R.ends),ans:R.ans,mk:R.mk,time:R.time,s:sc.s,c:sc.c,w:sc.w,auto:!!auto};
   var k=key(R.pid,R.s); (DB.att[k]=DB.att[k]||[]).push(rec); DB.run=null; persist();
-  result(R.pid,R.s,rec);
+  window.scrollTo(0,0); result(R.pid,R.s,rec);
 }
 
 /* ---------- result + review ---------- */
@@ -275,6 +309,7 @@ async function result(pid,s,rec){
   document.getElementById('hm').onclick=home;
 }
 async function review(pid,s,rec,filter){
+  document.body.classList.remove('in-exam');
   view='review'; var p=await paper(pid), sec=p.sections[s];
   var h='<h2>Review · '+esc(p.title)+' · '+esc(sec.name)+'</h2><div class="filters">';
   [['wrong','Wrong'],['skip','Skipped'],['mk','Marked'],['all','All']].forEach(function(f){ h+='<button class="btn small'+(filter===f[0]?' on':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>'; });
