@@ -86,5 +86,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "niacl23",
+  "title": "NIACL AO 2023",
+  "exam": "NIACL AO Prelims",
+  "date": "2023",
+  "order": 5,
+  "note": "",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
