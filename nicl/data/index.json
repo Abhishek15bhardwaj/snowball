@@ -152,5 +152,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "lic23",
+  "title": "LIC AAO 2023",
+  "exam": "LIC AAO Prelims",
+  "date": "17 Feb 2023",
+  "order": 8,
+  "note": "",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
