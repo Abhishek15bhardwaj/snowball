@@ -202,7 +202,7 @@ function home(){
       var best=at.reduce(function(m,a){ return Math.max(m,a.s); },-99);
       h+='<div class="sec-row"><div class="nm"><b>'+name+'</b><span>'+sc.n+' Qs · '+sc.minutes+' min'+(at.length?' · '+at.length+' attempt'+(at.length>1?'s':''):'')+'</span></div>'
         +(last?'<span class="chip'+(best>=cutoff(s,sc.n)?' pass':' low')+'" title="Best score / your cut-off">best '+fmtS(best)+' / '+fmtS(cutoff(s,sc.n))+'</span><button class="btn small" data-rev="'+p.id+'|'+s+'">Review</button>':'')
-        +'<button class="btn small primary" data-go="'+p.id+'|'+s+'">'+(at.length?'Retake':'Start')+'</button></div>';
+        +'<button class="btn small primary" data-go="'+p.id+'|'+s+'">'+(at.length?'Reattempt':'Start')+'</button></div>';
     });
     var secs=['R','Q','E'].filter(function(s){return p.sections[s];}), lasts=secs.map(function(s){ var a=DB.att[key(p.id,s)]||[]; return a[a.length-1]; });
     if(lasts.every(Boolean)){
@@ -329,17 +329,18 @@ async function result(pid,s,rec){
   order.forEach(function(k){ var r=rows[k]; h+='<tr><td>'+esc(k)+'</td><td class="n">'+r.n+'</td><td class="n">'+r.c+'</td><td class="n">'+r.w+'</td><td class="n">'+(r.c-0.25*r.w).toFixed(2)+'</td><td class="n">'+mmss(r.t)+'</td></tr>'; });
   h+='</tbody></table>';
   if(att.length>1){ h+='<h3>Your attempts at this section</h3><p class="muted num">'+att.map(function(a,i){ return 'Attempt '+(i+1)+': '+fmtS(a.s)+(a.s>=cutoff(s,sc.n)?' ✓':' ✗'); }).join(' · ')+'</p>'; }
-  h+='<div class="actions"><button class="btn primary" id="rv">Review answers</button><button class="btn" id="hm">All tests</button></div>';
+  h+='<div class="actions"><button class="btn primary" id="rv">Review answers</button><button class="btn" id="re">Reattempt section</button><button class="btn" id="hm">All tests</button></div>';
   $app.innerHTML=h; scrollTo(0,0);
   document.getElementById('rv').onclick=function(){ review(pid,s,rec,'wrong'); };
   document.getElementById('hm').onclick=home;
+  document.getElementById('re').onclick=function(){ start(pid,s); };
 }
 async function review(pid,s,rec,filter){
   document.body.classList.remove('in-exam');
   view='review'; var p=await paper(pid), sec=p.sections[s];
   var h='<h2>Review · '+esc(p.title)+' · '+esc(sec.name)+'</h2><div class="filters">';
   [['wrong','Wrong'],['skip','Skipped'],['mk','Marked'],['all','All']].forEach(function(f){ h+='<button class="btn small'+(filter===f[0]?' on':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>'; });
-  h+='<span class="sp"></span><button class="btn small" id="back">All tests</button></div>';
+  h+='<span class="sp"></span><button class="btn small primary" id="re">Reattempt</button><button class="btn small" id="back">All tests</button></div>';
   var shownG={}, any=false;
   sec.items.forEach(function(it){
     var a=rec.ans[it.n], st= a===undefined?'skip': a===it.a?'ok':'bad';
@@ -356,6 +357,7 @@ async function review(pid,s,rec,filter){
   $app.innerHTML=h; scrollTo(0,0);
   $app.querySelectorAll('[data-f]').forEach(function(b){ b.onclick=function(){ review(pid,s,rec,b.dataset.f); }; });
   document.getElementById('back').onclick=home;
+  document.getElementById('re').onclick=function(){ start(pid,s); };
 }
 
 /* ---------- small confirm dialog (no browser alerts) ---------- */
