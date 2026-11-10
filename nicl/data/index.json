@@ -1,0 +1,46 @@
+[
+ {
+  "id": "nicl25",
+  "title": "NICL AO 2025",
+  "exam": "NICL AO Prelims",
+  "date": "20 Jul 2025",
+  "order": 1,
+  "note": "",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
+ },
+ {
+  "id": "nicl24",
+  "title": "NICL AO 2024",
+  "exam": "NICL AO Prelims",
+  "date": "4 Mar 2024",
+  "order": 2,
+  "note": "",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
+ }
+]
