@@ -108,5 +108,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "lic25",
+  "title": "LIC AAO 2025",
+  "exam": "LIC AAO Prelims",
+  "date": "3 Oct 2025",
+  "order": 6,
+  "note": "A notch harder than NICL — good stretch practice.",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
