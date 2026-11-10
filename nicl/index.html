@@ -178,7 +178,7 @@ function merge(remote){
 
 /* ---------- data ---------- */
 async function paper(pid){ if(!PAPERS[pid]) PAPERS[pid]=await (await fetch('data/'+pid+'.json')).json(); return PAPERS[pid]; }
-var CUT={R:17,Q:17,E:26}, STD={R:35,Q:35,E:30};
+var CUT={R:20,Q:20,E:27}, STD={R:35,Q:35,E:30};
 function cutoff(s,n){ var c=CUT[s]*n/STD[s]; return Math.ceil(c*4-1e-9)/4; }   // scaled when a paper has fewer questions, rounded up to a reachable score (steps of 0.25)
 function fmtS(x){ return (Math.round(x*100)/100).toString(); }
 function score(sec,ans){
@@ -213,7 +213,7 @@ function home(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<h3>How the score works</h3><p class="muted">Score = right − 0.25 × wrong. Phase 1 is qualifying with a cut-off in every section, so you must clear every section. Your cut-offs: Reasoning 17, Quant 17, English 26 (60 in all). A paper with fewer questions in a section gets the cut-off scaled down in proportion. Guess only when you can rule out at least two options.</p>';
+  h+='<h3>How the score works</h3><p class="muted">Score = right − 0.25 × wrong. Phase 1 is qualifying with a cut-off in every section, so you must clear every section. Your targets: Reasoning 20, Quant 20, English 27 (67 in all — a safe margin over recent IT cut-offs). A paper with fewer questions in a section gets the cut-off scaled down in proportion. Guess only when you can rule out at least two options.</p>';
   h+='<p class="muted">'+(store?'Attempts sync with your Snowball passphrase.':'Attempts are saved on this device. Turn on sync in Snowball to keep them across devices.')+'</p>';
   $app.innerHTML=h;
   $app.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ var x=b.dataset.go.split('|'); start(x[0],x[1]); }; });
