@@ -64,5 +64,27 @@
     "minutes": 20
    }
   }
+ },
+ {
+  "id": "oicl17",
+  "title": "OICL AO 2017",
+  "exam": "OICL AO Prelims",
+  "date": "22 Oct 2017",
+  "order": 4,
+  "note": "",
+  "sections": {
+   "E": {
+    "n": 30,
+    "minutes": 20
+   },
+   "R": {
+    "n": 35,
+    "minutes": 20
+   },
+   "Q": {
+    "n": 35,
+    "minutes": 20
+   }
+  }
  }
 ]
