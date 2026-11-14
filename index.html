@@ -222,8 +222,8 @@ function defaultState(){ return { enabled:{}, mix:true, pyq:false, first:{}, his
 
 async function boot(){
   try{
-    INDEX = await (await fetch('banks/index.json')).json();
-    for(var i=0;i<INDEX.length;i++){ var b=INDEX[i]; if(b.ready){ BANKS[b.s] = await (await fetch(b.file)).json(); } }
+    INDEX = await (await fetch('banks/index.json',{cache:'no-cache'})).json();
+    for(var i=0;i<INDEX.length;i++){ var b=INDEX[i]; if(b.ready){ BANKS[b.s] = await (await fetch(b.file,{cache:'no-cache'})).json(); } }
   }catch(e){ $app.innerHTML='<p class="notice">Could not load the question banks. Reload the page to try again.</p>'; return; }
   // local first for a fast first frame
   ST = (local.load('state')) || defaultState();
@@ -434,14 +434,12 @@ function renderHome(){
 
   h += '<div class="plan" style="margin-top:22px"><div class="line"><span><b>DSSSB Section B mock</b><br><span class="muted" style="font-size:13px">100 questions in 60 minutes, split across subjects in the real paper’s proportions. Every subject is included, studied or not.</span></span><button class="btn primary" id="dsbmock">Start</button></div></div>';
   h += '<div class="opt-row"><span><b>PYQs only</b><br><span class="muted" style="font-size:13px">Rounds and single-subject quizzes use only previous-year questions.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-pyq" '+(ST.pyq?'checked':'')+' aria-label="PYQs only"><span></span></label></div>';
-  [['big','Big chunks · 100+ questions each'],['small','Small chunks · 60+ questions each']].forEach(function(g){
-  h += '<h3>'+g[1]+'</h3>';
-  INDEX.slice().sort(function(x,y){ return (y.wt||0)-(x.wt||0); }).forEach(function(b){ if((b.size||'big')!==g[0]) return;
+  h += '<h3>Subjects · most DSSSB PYQs first</h3>';
+  INDEX.slice().sort(function(x,y){ return (y.dp||0)-(x.dp||0) || (y.wt||0)-(x.wt||0); }).forEach(function(b){
     var meta;
     if(!b.ready) meta = 'Coming soon';
-    else { var seenN=0, solid=0; BANKS[b.s].fixed.forEach(function(q){ var r=STATS[gkey(b.s,q.id)]; if(r){ seenN++; if(srsBox(null,r)>=3) solid++; } }); meta = b.nf+' questions · '+b.pyq+' PYQs · ~'+b.wt+' in the paper · seen '+seenN+' · solid '+solid; }
+    else { var seenN=0, solid=0; BANKS[b.s].fixed.forEach(function(q){ var r=STATS[gkey(b.s,q.id)]; if(r){ seenN++; if(srsBox(null,r)>=3) solid++; } }); meta = b.nf+' questions · '+(b.dp||0)+' DSSSB PYQs'+(b.pyq>(b.dp||0)?' (+'+(b.pyq-(b.dp||0))+' other exams)':'')+' · ~'+b.wt+' in the paper · seen '+seenN+' · solid '+solid; }
     h += '<div class="subj"><span class="nm">'+esc(b.name)+(b.ready?' <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:6px" data-only="'+b.s+'">Quiz only this</button> <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:4px" data-mock="'+b.s+'">Mock test</button>'+(b.vg?' <button class="btn" style="padding:4px 10px;font-size:13px;margin-left:4px" data-gaps="'+b.s+'" title="PYQs the one-shot video does not teach">Video gaps ('+b.vg+')</button>':''):'')+'</span><label class="switch" title="Include '+esc(b.name)+'"><input type="checkbox" id="sw-'+b.s+'" data-s="'+b.s+'" '+(b.ready&&ST.enabled[b.s]?'checked':'')+' '+(b.ready?'':'disabled')+' aria-label="Include '+esc(b.name)+'"><span></span></label><span class="meta">'+meta+'</span></div>';
-  });
   });
   h += '<div class="opt-row"><span><b>Mix subjects together</b><br><span class="muted" style="font-size:13px">Closer to the real paper. Off keeps each subject in one block.</span></span><label class="switch" style="grid-row:auto"><input type="checkbox" id="sw-mix" '+(ST.mix?'checked':'')+' aria-label="Mix subjects together"><span></span></label></div>';
 
